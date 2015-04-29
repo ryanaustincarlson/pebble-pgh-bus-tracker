@@ -11,6 +11,10 @@
     },
     "sdkVersion": "3",
     "shortName": "PGH Bus Tracker",
+    "targetPlatforms": [
+        "aplite",
+        "basalt"
+    ],
     "uuid": "063f1b62-8f7d-4232-b061-f17b780ecfea",
     "versionCode": 1,
     "versionLabel": "1.0",

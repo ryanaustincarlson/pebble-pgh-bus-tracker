@@ -1,7 +1,7 @@
 #include <pebble.h>
 #include "routes.h"
-  
-static Window *s_main_window;
+
+static Window *s_routes_window;
 static MenuLayer *s_menu_layer;
 
 static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
@@ -11,7 +11,7 @@ static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data
 static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
   switch (section_index) {
     case 0:
-      return 2;
+      return 5;
     default:
       return 0;
   }
@@ -23,35 +23,27 @@ static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t s
 
 static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
   // Determine which section we're working with
-  /*
   switch (section_index) {
     case 0:
       // Draw title text in the section header
-      menu_cell_basic_header_draw(ctx, cell_layer, "Some example items");
-      break;
-    case 1:
-      menu_cell_basic_header_draw(ctx, cell_layer, "One more");
+      menu_cell_basic_header_draw(ctx, cell_layer, "Routes");
       break;
   }
-  */
 }
 
 static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+  char *rows[5];
+  rows[0] = "61A";
+  rows[1] = "61B";
+  rows[2] = "61C";
+  rows[3] = "61D";
+  rows[4] = "P1";
+  
   // Determine which section we're going to draw in
   switch (cell_index->section) {
     case 0:
       // Use the row to specify which item we'll draw
-      switch (cell_index->row) {
-        case 0:
-          // This is a basic menu item with a title and subtitle
-          menu_cell_basic_draw(ctx, cell_layer, "Favorites", NULL, NULL);
-          break;
-        case 1:
-          // This is a basic menu icon with a cycling icon
-          menu_cell_basic_draw(ctx, cell_layer, "Routes", NULL, NULL);
-          // menu_cell_basic_draw(ctx, cell_layer, "Icon Item", "Select to cycle", s_menu_icons[s_current_icon]);
-          break;
-      }
+      menu_cell_basic_draw(ctx, cell_layer, rows[cell_index->row], NULL, NULL);
       break;
   }
 }
@@ -65,12 +57,12 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
     
     // Routes
     case 1:
-      push_routes(s_main_window);
+      
       break;
   }
 }
 
-static void main_window_load(Window *window) {
+static void routes_window_load(Window *window) {
   // Now we prepare to initialize the menu layer
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_frame(window_layer);
@@ -92,32 +84,25 @@ static void main_window_load(Window *window) {
   layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
 }
 
-static void main_window_unload(Window *window) {
+static void routes_window_unload(Window *window) {
   // Destroy the menu layer
   menu_layer_destroy(s_menu_layer);
+  
+  // Destroy the window
+  window_destroy(s_routes_window);
 }
 
-static void init() {
+void push_routes(Window *window)
+{
   // Create main Window element and assign to pointer
-  s_main_window = window_create();
+  s_routes_window = window_create();
   
   // Set handlers to manage the elements inside the Window
-  window_set_window_handlers(s_main_window, (WindowHandlers) {
-    .load = main_window_load,
-    .unload = main_window_unload
+  window_set_window_handlers(s_routes_window, (WindowHandlers) {
+    .load = routes_window_load,
+    .unload = routes_window_unload
   });
 
   // Show the Window on the watch, with animated=true
-  window_stack_push(s_main_window, true);
-}
-
-static void deinit() {
-  // Destroy Window
-  window_destroy(s_main_window);
-}
-
-int main(void) {
-  init();
-  app_event_loop();
-  deinit();
+  window_stack_push(s_routes_window, true);
 }
