@@ -1,5 +1,9 @@
 {
-    "appKeys": {},
+    "appKeys": {
+        "KEY_ROUTES": 0,
+        "KEY_SUBTITLES": 2,
+        "KEY_TITLES": 1
+    },
     "capabilities": [
         ""
     ],
@@ -12,8 +16,7 @@
     "sdkVersion": "3",
     "shortName": "PGH Bus Tracker",
     "targetPlatforms": [
-        "aplite",
-        "basalt"
+        "aplite"
     ],
     "uuid": "063f1b62-8f7d-4232-b061-f17b780ecfea",
     "versionCode": 1,

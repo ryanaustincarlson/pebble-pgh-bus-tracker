@@ -1,5 +1,6 @@
 #include <pebble.h>
 #include "routes.h"
+#include "str_split.h"
   
 static Window *s_main_window;
 static MenuLayer *s_menu_layer;
@@ -117,6 +118,26 @@ static void deinit() {
 }
 
 int main(void) {
+  /*
+  char months[] = "JAN,FEB,MAR,APR,MAY,JUN,JUL,AUG,SEP,OCT,NOV,DEC";
+  char** tokens;
+
+  printf("months=[%s]\n\n", months);
+
+  tokens = str_split(months, ',');
+
+  if (tokens)
+  {
+      int i;
+      for (i = 0; *(tokens + i); i++)
+      {
+          printf("month=[%s]\n", *(tokens + i));
+          free(*(tokens + i));
+      }
+      printf("\n");
+      free(tokens);
+  }*/
+  
   init();
   app_event_loop();
   deinit();
