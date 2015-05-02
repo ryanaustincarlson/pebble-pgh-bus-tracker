@@ -9,7 +9,10 @@
   
 static Window *s_routes_window;
 static MenuLayer *s_menu_layer;
-static int msgcount;
+
+static char **s_menu_titles;
+static char **s_menu_subtitles;
+static int s_menu_num_entries; // total num items
 
 /*
  * MENU
@@ -22,7 +25,7 @@ static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data
 static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
   switch (section_index) {
     case 0:
-      return 5;
+      return s_menu_num_entries;
     default:
       return 0;
   }
@@ -42,20 +45,19 @@ static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, ui
   }
 }
 
-static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
-  char *rows[5];
-  rows[0] = "61A";
-  rows[1] = "61B";
-  rows[2] = "61C";
-  rows[3] = "61D";
-  rows[4] = "P1";
-  
+static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {  
   // Determine which section we're going to draw in
   switch (cell_index->section) {
     case 0:
+    {
       // Use the row to specify which item we'll draw
-      menu_cell_basic_draw(ctx, cell_layer, rows[cell_index->row], NULL, NULL);
+      menu_cell_basic_draw(ctx,
+        cell_layer,
+        s_menu_titles[cell_index->row],
+        s_menu_subtitles[cell_index->row],
+        NULL);
       break;
+    }
   }
 }
 
@@ -83,15 +85,51 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   Tuple *t = dict_read_first(iterator);
   
   bool done = false;
+  int item_index = -1;
+  char *title;
+  char *subtitle;
   
   while(t != NULL) {
     // Which key was received?
     switch(t->key) {
-      case KEY_TITLES:
-        printf("titles (%d): %s", t->length, t->value->cstring);
+      case KEY_NUM_ENTRIES:
+      {
+        printf("num entries: %d", (int)t->value->int32);
+        int num_entries = (int)t->value->int32;
+        s_menu_titles = malloc(num_entries * sizeof(char *));
+        s_menu_subtitles = malloc(num_entries * sizeof(char *));
+        s_menu_num_entries = 0;
         break;
+      }
+      case KEY_ITEM_INDEX:
+      {
+        printf("item idx: %d", (int)t->value->int32);
+        item_index = (int)t->value->int32;
+
+        if (item_index > s_menu_num_entries)
+        {
+          s_menu_num_entries = item_index+1;
+        }
+
+        break;
+      }
+      case KEY_TITLES:
+      {
+        printf("titles (%d): %s", t->length, t->value->cstring);
+        // char *tmptitle = t->value->cstring;
+        // title = malloc(t->length * sizeof(char));
+        // strcpy(title, tmptitle);
+        // snprintf(title, sizeof(t->value->cstring), "%s", t->value->cstring);
+        title = t->value->cstring;
+        break;
+      }
       case KEY_SUBTITLES:
         printf("subtitles (%d): %s", t->length, t->value->cstring);
+        // char *tmpsubtitle = t->value->cstring;
+        // subtitle = malloc(t->length * sizeof(char));
+        // strcpy(subtitle, tmpsubtitle);
+        subtitle = t->value->cstring;
+        // snprintf(subtitle, sizeof(t->value->cstring), "%s", t->value->cstring);
         break;
     }
     
@@ -99,11 +137,38 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     {
       APP_LOG(APP_LOG_LEVEL_ERROR, "Done finding routes!");
       done = true;
+
+      for (int i=0; i<s_menu_num_entries; i++)
+      {
+        char *atitle = s_menu_titles[i];
+        char *asubtitle = s_menu_subtitles[i];
+        printf("after > title: %s, subtitle: %s", atitle, asubtitle);
+      }
+
       break;
     }
     
     // Look for next item
     t = dict_read_next(iterator);
+  }
+
+  if (item_index != -1)
+  {
+    printf("item idx valid = %d", item_index);
+    printf("title: %s", title);
+    printf("subtitle: %s", subtitle);
+
+    // s_menu_titles[item_index] = malloc(strlen(title) * sizeof(char));
+
+    s_menu_titles[item_index] = malloc(strlen(title) * sizeof(char));
+    s_menu_subtitles[item_index] = malloc(strlen(subtitle) * sizeof(char));
+
+    strcpy(s_menu_titles[item_index], title);
+    strcpy(s_menu_subtitles[item_index], subtitle);
+
+    // s_menu_titles[item_index] = title;
+    // s_menu_subtitles[item_index] = subtitle;
+    printf("title: %s, subtitle: %s", s_menu_titles[item_index], s_menu_subtitles[item_index]);
   }
   
   if (!done)
@@ -118,11 +183,8 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     app_message_outbox_send();
     printf("sent getroutes message");
   }
-  
-  if (msgcount < 3)
-  {
-    msgcount++;
-  }
+
+  menu_layer_reload_data(s_menu_layer);
 }
 
 static void inbox_dropped_callback(AppMessageResult reason, void *context) {
@@ -171,8 +233,6 @@ static void routes_window_unload(Window *window) {
 
 void push_routes(Window *window)
 { 
-  msgcount = 0;
-  
   // Create main Window element and assign to pointer
   s_routes_window = window_create();
   
@@ -202,5 +262,5 @@ void push_routes(Window *window)
 
   // Send the message!
   app_message_outbox_send();
-  printf("sent getroutes message");
+  // printf("sent getroutes message");
 }

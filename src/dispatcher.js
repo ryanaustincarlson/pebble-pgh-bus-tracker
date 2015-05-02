@@ -102,9 +102,9 @@ var getroutes = {
   
   parseRoutes : function(routes)
   {
-    console.log('> sorting...');
+    // console.log('> sorting...');
     routes.sort(getroutes.sortRoutesFcn);
-    console.log('> done sorting!');
+    // console.log('> done sorting!');
     
     var titles = [];
     var subtitles = [];
@@ -123,7 +123,7 @@ var getroutes = {
   savedRoutes : null,
   sendNextRoute : function()
   {
-    console.log('in send next route, savedRoutes: ' + getroutes.savedRoutes);
+    // console.log('in send next route, savedRoutes: ' + getroutes.savedRoutes);
     var titles = getroutes.savedRoutes.titles;
     var subtitles = getroutes.savedRoutes.subtitles;
     var index = getroutes.savedRoutes.index;
@@ -136,6 +136,7 @@ var getroutes = {
     {
       nextTitle = "done";
       nextSubtitle = "done";
+      getroutes.savedRoutes.index = 0;
     }
     
     console.log('sending title: ', nextTitle);
@@ -143,7 +144,8 @@ var getroutes = {
     
     var dictionary = {
       "KEY_TITLES" : nextTitle,
-      "KEY_SUBTITLES" : nextSubtitle
+      "KEY_SUBTITLES" : nextSubtitle,
+      "KEY_ITEM_INDEX" : index
     };
     
     Pebble.sendAppMessage(dictionary,
@@ -159,21 +161,27 @@ var getroutes = {
   {
     var url = URLUtils.constructURL('getroutes', {});
     URLUtils.sendRequest(url, function(responseText){
-      console.log('received http response!');
+      // console.log('received http response!');
 
       // responseText contains a JSON object with weather info
       var data = JSON.parse(responseText);
       var routes = data['bustime-response'].routes;
       var parsed = getroutes.parseRoutes(routes);
       
-      console.log('setting up saved routes');
+      // console.log('setting up saved routes');
       getroutes.savedRoutes = {
         titles : parsed.titles,
         subtitles : parsed.subtitles,
         index : 0
       };
-      
-      getroutes.sendNextRoute();
+
+      Pebble.sendAppMessage({"KEY_NUM_ENTRIES" : parsed.titles.length},
+        function(e) {
+          console.log("Num Entries sent to pebble successfully!");
+        },
+        function(e) {
+          console.log("Error sending Num Entries to pebble :(");
+        });
     });
   }
 };
@@ -181,9 +189,9 @@ var getroutes = {
 // Listen for when an AppMessage is received
 Pebble.addEventListener('appmessage',
   function(e) {
-    console.log("AppMessage received!");
+    // console.log("AppMessage received!");
     var requestType = e.payload["0"];
-    console.log('request type: ' + requestType);
+    // console.log('request type: ' + requestType);
     
     if (requestType == 'getroutes')
     {
