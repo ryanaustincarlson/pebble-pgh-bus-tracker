@@ -3,7 +3,8 @@
         "KEY_TITLES": 0,
         "KEY_SUBTITLES": 1,
         "KEY_NUM_ENTRIES": 2,
-        "KEY_ITEM_INDEX": 3
+        "KEY_ITEM_INDEX": 3,
+        "KEY_MSG_TYPE": 4
     },
     "capabilities": [
         ""

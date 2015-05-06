@@ -24,6 +24,52 @@ var URLUtils = {
   }
 };
 
+var sendMenuSetupMessage = function(num_entries, msgType)
+{
+  console.log('for ' + msgType + '... sending menu setup message w/ ' + num_entries + ' entries');
+
+  var dictionary = {
+    "KEY_NUM_ENTRIES" : num_entries,
+    "KEY_MSG_TYPE" : msgType    
+  }
+
+  Pebble.sendAppMessage(dictionary,
+    function(e) {
+      console.log("for " + msgType + "... # entries sent to pebble successfully!");
+    },
+    function(e) {
+      console.log("Error sending # entries to pebble :(");
+    });
+}
+
+var sendMenuEntryMessage = function(title, subtitle, index, msgType)
+{
+    console.log('sending for ' + msgType + '... title: ' + title + ', subtitle: ' + subtitle + ', idx: ' + index);
+
+    var dictionary = {
+      "KEY_ITEM_INDEX" : index,
+      "KEY_MSG_TYPE" : msgType
+    };
+    if (title != null)
+    {
+      dictionary["KEY_TITLES"] = title;
+    }
+
+    if (subtitle != null)
+    {
+      dictionary["KEY_SUBTITLES"] = subtitle
+    }
+    
+    Pebble.sendAppMessage(dictionary,
+      function(e) {
+        console.log(msgType + " sent to pebble successfully!");
+      },
+      function(e) {
+        console.log("Error sending " + msgType + " to pebble :(");
+      }
+    );
+}
+
 var getroutes = {
   sortRoutesFcn : function(a, b)
   {
@@ -132,30 +178,16 @@ var getroutes = {
     var nextSubtitle = subtitles[index];
     getroutes.savedRoutes.index = index+1;
     
-    if (!nextTitle || !nextSubtitle)
+    if (!nextTitle || !nextSubtitle || index > 2)
     {
       nextTitle = "done";
       nextSubtitle = "done";
-      getroutes.savedRoutes.index = 0;
+      getroutes.savedRoutes.index = -1;
     }
     
-    console.log('sending title: ', nextTitle);
-    console.log('sending subtitle: ', nextSubtitle);
-    
-    var dictionary = {
-      "KEY_TITLES" : nextTitle,
-      "KEY_SUBTITLES" : nextSubtitle,
-      "KEY_ITEM_INDEX" : index
-    };
-    
-    Pebble.sendAppMessage(dictionary,
-      function(e) {
-        console.log("Routes sent to pebble successfully!");
-      },
-      function(e) {
-        console.log("Error sending routes to pebble :(");
-      }
-    );
+    // console.log('sending title: ', nextTitle);
+    // console.log('sending subtitle: ', nextSubtitle);
+    sendMenuEntryMessage(nextTitle, nextSubtitle, index, "routes");    
   },
   get : function(onSuccess)
   {
@@ -163,7 +195,7 @@ var getroutes = {
     URLUtils.sendRequest(url, function(responseText){
       // console.log('received http response!');
 
-      // responseText contains a JSON object with weather info
+      // responseText contains a JSON object
       var data = JSON.parse(responseText);
       var routes = data['bustime-response'].routes;
       var parsed = getroutes.parseRoutes(routes);
@@ -175,13 +207,70 @@ var getroutes = {
         index : 0
       };
 
-      Pebble.sendAppMessage({"KEY_NUM_ENTRIES" : parsed.titles.length},
-        function(e) {
-          console.log("Num Entries sent to pebble successfully!");
-        },
-        function(e) {
-          console.log("Error sending Num Entries to pebble :(");
-        });
+      sendMenuSetupMessage(parsed.titles.length, "routes");
+    });
+  }
+};
+
+var getdirections = {
+  parseDirections : function(directions)
+  {
+    var items = [];
+    for (var i=0; i<directions.length; i++)
+    {
+      var direction = directions[i].dir;
+
+      console.log('dir: ' + direction);
+      items.push(direction);
+    }
+    return items;
+  },
+  savedDirections : null,
+  sendNextDirection : function()
+  {
+    var titles = getdirections.savedDirections.titles;
+    var index = getdirections.savedDirections.index;
+
+    console.log('(2) ~~ titles count: ' + titles.length);
+    for (var i=0; i<titles.length; i++)
+    {
+      console.log('(2) title[' + i + '] = ' + titles[i]);
+    }
+    
+    var nextTitle = titles[index];
+
+    getdirections.savedDirections.index = index+1;
+    
+    if (!nextTitle)
+    {
+      nextTitle = "done";
+      getdirections.savedDirections.index = 0;
+    }
+
+    sendMenuEntryMessage(nextTitle, null, index, "directions");
+  },
+  get : function(route)
+  {
+    var url = URLUtils.constructURL('getdirections', {'rt' : route});
+    URLUtils.sendRequest(url, function(responseText){
+      var data = JSON.parse(responseText);
+
+      console.log('success!');
+      var directions = data['bustime-response'].directions;
+      var items = getdirections.parseDirections(directions);
+
+      getdirections.savedDirections = {
+        titles : items,
+        index : 0
+      };
+
+      console.log('(1) ~~ titles count: ' + getdirections.savedDirections.titles.length);
+      for (var i=0; i<getdirections.savedDirections.titles.length; i++)
+      {
+        console.log('(1) title[' + i + '] = ' + getdirections.savedDirections.titles[i]);
+      }
+      
+      sendMenuSetupMessage(items.length, "directions");
     });
   }
 };
@@ -195,13 +284,35 @@ Pebble.addEventListener('appmessage',
     
     if (requestType == 'getroutes')
     {
-      if (!getroutes.savedRoutes)
+      if (getroutes.savedRoutes)
       {
-        getroutes.get();
+        if (getroutes.savedRoutes.index >= 0)
+        {
+          getroutes.sendNextRoute();
+        }
+        else
+        {
+          getroutes.savedRoutes.index = 0;
+          sendMenuSetupMessage(getroutes.savedRoutes.titles.length, "routes");
+        }
       }
       else
       {
-        getroutes.sendNextRoute();
+        getroutes.get(); 
+      }
+    }
+    else if (requestType == 'getdirections')
+    {
+      if (getdirections.savedDirections)
+      {
+        getdirections.sendNextDirection()
+      }
+      else
+      {
+        var route = e.payload["1"];
+        console.log("get directions with route: " + route);
+
+        getdirections.get(route);
       }
     }
   }                     

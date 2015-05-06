@@ -1,5 +1,7 @@
 #include <pebble.h>
 #include "routes.h"
+#include "menu_browser.h"
+#include "directions.h"
 #include "str_split.h"
   
 static Window *s_main_window;
@@ -62,11 +64,13 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   switch (cell_index->row) {
     // Favorites
     case 0:
+      push_directions("P1");
       break;
     
     // Routes
     case 1:
-      push_routes(s_main_window);
+      // push_routes();
+      push_menu();
       break;
   }
 }
@@ -91,6 +95,9 @@ static void main_window_load(Window *window) {
   menu_layer_set_click_config_onto_window(s_menu_layer, window);
 
   layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
+
+  // Open AppMessage
+  app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
 }
 
 static void main_window_unload(Window *window) {
