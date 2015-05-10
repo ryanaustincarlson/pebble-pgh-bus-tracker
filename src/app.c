@@ -70,7 +70,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
     // Routes
     case 1:
       // push_routes();
-      push_menu();
+      push_menu(NULL, NULL, NULL);
       break;
   }
 }
