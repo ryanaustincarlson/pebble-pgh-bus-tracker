@@ -14,6 +14,7 @@
   MenuLayer *menu_layer;
   char **menu_titles;
   char **menu_subtitles;
+  char **menu_selectors; // what to send back to the phone
   int menu_num_entries;
   char *route;
   char *direction;
@@ -26,8 +27,8 @@ static MenuBrowser **s_menu_browsers = NULL; // malloc(sizeof(MenuBrowser) * 4);
 static int s_browser_index;
 
 static char *HEADERS[4] = {"Routes", "Directions", "Stops", "Predictions"};
-// static char *MESSAGES[4] = {"getroutes", "getdirections", "getstops", "getpredictions"};
-static char *MESSAGES[4] = {"getroutes", "getroutes", "getroutes", "getroutes"};
+static char *MESSAGES[4] = {"getroutes", "getdirections", "getstops", "getpredictions"};
+// static char *MESSAGES[4] = {"getroutes", "getdirections", "getstops", "getroutes"};
 
 // static Window *s_menu_window;
 // static MenuLayer *s_menu_layer;
@@ -103,17 +104,19 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   {
     case 0:
     {
+      // route = browser->menu_selectors[cell_index->row];
       route = browser->menu_titles[cell_index->row];
       break;
     }
     case 1:
     {
+      // direction = browser->menu_selectors[cell_index->row];
       direction = browser->menu_titles[cell_index->row];
       break;
     }
     case 2:
     {
-      stopid = browser->menu_titles[cell_index->row];
+      stopid = browser->menu_selectors[cell_index->row];
       break;
     }
   }
@@ -134,6 +137,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
 
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
   char **menu_titles = browser->menu_titles;
+  char **menu_selectors = browser->menu_selectors;
   // printf("menu titles: %p, browser: %p", menu_titles, browser);
   
   Tuple *t = dict_read_first(iterator);
@@ -142,6 +146,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   int item_index = -1;
   char *title = NULL;
   char *subtitle = NULL;
+  char *selector = NULL;
   // char *msg_type = NULL;
   
   while(t != NULL) {
@@ -161,6 +166,10 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
         menu_titles = malloc(num_entries * sizeof(char *));
         browser->menu_titles = menu_titles;
         // s_menu_subtitles = malloc(num_entries * sizeof(char *));
+
+        // menu_selectors = malloc(num_entries * sizeof(char *));
+        // browser->menu_selectors = menu_selectors;
+
         browser->menu_num_entries = 0;
         break;
       }
@@ -185,11 +194,17 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
         break;
       }
       */
+      case KEY_SELECTORS:
+      {
+        // printf("selector (%d): %s", t->length, t->value->cstring);
+        // selector = t->value->cstring;
+        break;
+      }
     }
     
     if (strcmp("done", t->value->cstring) == 0)
     {
-      // APP_LOG(APP_LOG_LEVEL_ERROR, "Done finding messages!");
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Done finding messages!");
       done = true;
     }
     
@@ -219,6 +234,9 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
       strcpy(menu_titles[item_index], title);
     // strcpy(s_menu_titles[item_index], title);
     // strcpy(s_menu_subtitles[item_index], subtitle);
+
+      // menu_selectors[item_index] = malloc(strlen(selector) * sizeof(char));
+      // strcpy(menu_selectors[item_index], selector);
 
     // printf("title: %s, subtitle: %s", s_menu_titles[item_index], s_menu_subtitles[item_index]);
       // printf("local title: %s, title in array: %s", title, menu_titles[item_index]);
@@ -282,12 +300,13 @@ static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
   * WINDOW MANAGEMENT
   */
 
-void initialize_browser(MenuBrowser *browser)
+static void initialize_browser(MenuBrowser *browser)
 {
   browser->menu_window = NULL;
   browser->menu_layer = NULL;
 
   browser->menu_titles = NULL;
+  browser->menu_selectors = NULL;
   browser->menu_num_entries = 0;
 
   browser->route = NULL;
@@ -346,31 +365,39 @@ static void window_unload(Window *window) {
   // initialize_browser(browser);
 
   // clear out titles
-  char **menu_titles = browser->menu_titles;
   for (int i=0; i<browser->menu_num_entries; i++)
   {
-    free(menu_titles[i]);
+    free(browser->menu_titles[i]);
+    // free(browser->menu_selectors[i]);
   }
-  free(menu_titles);
+  free(browser->menu_titles);
+  // free(browser->menu_selectors);
   browser->menu_titles = NULL;
+
   browser->menu_num_entries = 0;
 
   printf("could free route: %p", browser->route);
   if (browser->route != NULL)
-    printf("freeing route: %p", browser->route);
-    // free(browser->route);
+  {
+    printf("freeing route: %p, %s", browser->route, browser->route);
+    free(browser->route);
+  }
   browser->route = NULL;
 
   printf("could free dir: %p", browser->direction);
   if (browser->direction != NULL)
+  {
     printf("freeing dir: %p", browser->direction);
     // free(browser->direction);
+  }
   browser->direction = NULL;
   
   printf("could free stopid: %p", browser->stopid);
   if (browser->stopid != NULL)
+  {  
     printf("freeing stopid: %p", browser->stopid);
-    // free(browser->stopid);
+    // free(browser->stopid);  
+  }
   browser->stopid = NULL;
 
   printf("freeing browser: %p", browser);
@@ -414,7 +441,7 @@ void push_menu(char *route, char *direction, char *stopid)
 
   if (route != NULL)
   {
-    // printf("copying route");
+    printf("copying route");
     browser->route = malloc(strlen(route) * sizeof(char));
     strcpy(browser->route, route);
   }

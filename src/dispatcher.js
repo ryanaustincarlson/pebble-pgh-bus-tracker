@@ -28,6 +28,10 @@ var URLUtils = {
 
 var sendMenuSetupMessage = function(num_entries, msgType)
 {
+  if (num_entries > 6)
+  {
+    num_entries = 6;
+  }
   console.log('for ' + msgType + '... sending menu setup message w/ ' + num_entries + ' entries');
 
   var dictionary = {
@@ -37,16 +41,20 @@ var sendMenuSetupMessage = function(num_entries, msgType)
 
   Pebble.sendAppMessage(dictionary,
     function(e) {
-      console.log("for " + msgType + "... # entries sent to pebble successfully!");
+      // console.log("for " + msgType + "... # entries sent to pebble successfully!");
     },
     function(e) {
-      console.log("Error sending # entries to pebble :(");
+      // console.log("Error sending # entries to pebble :(");
     });
 }
 
-var sendMenuEntryMessage = function(title, subtitle, index, msgType)
+var sendMenuEntryMessage = function(title, subtitle, selector, index, msgType)
 {
-  console.log('sending for ' + msgType + '... title: ' + title + ', subtitle: ' + subtitle + ', idx: ' + index);
+  console.log('sending for ' + msgType + 
+              '... title: ' + title + 
+              ', subtitle: ' + subtitle + 
+              ', selector: ' + selector +
+              ', idx: ' + index);
 
   var dictionary = {
     "KEY_ITEM_INDEX" : index,
@@ -62,6 +70,11 @@ var sendMenuEntryMessage = function(title, subtitle, index, msgType)
     dictionary["KEY_SUBTITLES"] = subtitle
   }
 
+  if (selector != null)
+  {
+    dictionary["KEY_SELECTORS"] = selector;
+  }
+
   Pebble.sendAppMessage(dictionary,
     function(e) {
       console.log(msgType + " sent to pebble successfully!");
@@ -73,12 +86,14 @@ var sendMenuEntryMessage = function(title, subtitle, index, msgType)
 }
 
 var Dispatcher = {
-  sendNextItem : function(savedDataContainer, requestType, resetSavedDataOnFinish)
+  sendNextItem : function(savedDataContainer, requestType, 
+                          resetSavedDataOnFinish)
   {
     var savedData = savedDataContainer.savedData;
 
     var titles = savedData.titles;
     var subtitles = savedData.subtitles;
+    var selectors = savedData.selectors;
     var index = savedData.index;
 
     var nextTitle = titles[index];
@@ -87,10 +102,11 @@ var Dispatcher = {
     {
       nextSubtitle = subtitles[index];
     }
+    var nextSelector = selectors[index];
 
     savedData.index = index+1;
 
-    if (!nextTitle)
+    if (!nextTitle || index > 5)
     {
       nextTitle = "done";
       nextSubtitle = "done";
@@ -107,16 +123,18 @@ var Dispatcher = {
 
     savedDataContainer.savedData = savedData;
 
-    sendMenuEntryMessage(nextTitle, nextSubtitle, index, requestType);
+    sendMenuEntryMessage(nextTitle, nextSubtitle, nextSelector, index, requestType);
   },
-  sendRequest : function(savedDataContainer, requestType, requestData, extractDataFcn, sortDataFcn, extractTitleFcn, extractSubtitleFcn)
+  sendRequest : function(savedDataContainer, requestType, requestData, 
+                         extractDataFcn, sortDataFcn, extractTitleFcn, 
+                         extractSubtitleFcn, extractSelectorFcn)
   {
     var url = URLUtils.constructURL(requestType, requestData);
     URLUtils.sendRequest(url, function(responseText) {
       if (!!responseText)
       {
         var data = JSON.parse(responseText);
-        items = extractDataFcn(data);
+        var items = extractDataFcn(data);
 
         // custom sort?
         if (!!sortDataFcn)
@@ -128,6 +146,7 @@ var Dispatcher = {
 
         var titles = [];
         var subtitles = [];
+        var selectors = [];
         for (var i=0; i<items.length; i++)
         {
           var item = items[i];
@@ -145,11 +164,15 @@ var Dispatcher = {
           {
             subtitles.push(subtitle);
           }
+
+          var selector = extractSelectorFcn(item);
+          selectors.push(selector);
         }
 
         savedDataContainer.savedData = {
           titles : titles,
           subtitles : subtitles,
+          selectors : selectors,
           index : 0
         };
 
@@ -247,267 +270,97 @@ var getroutes = {
 
     Dispatcher.sendRequest(getroutes, 'getroutes', {}, function(data){
       return data['bustime-response'].routes;
-    }, null, function(route) {
+    }, getroutes.sortRoutesFcn, function(route) {
       return route.rt;
     }, function(route) {
       return route.rtnm;
+    }, function(route) {
+      return route.rt;
     });
   }
 };
 
-// console.log('creating new routes');
-// var getroutes = new RoutesDispatcher();
-// getroutes.dispatcher = new Dispatcher(false);
-  
-  // parseRoutes : function(routes)
-  // {
-  //   // console.log('> sorting...');
-  //   routes.sort(getroutes.sortRoutesFcn);
-  //   // console.log('> done sorting!');
-
-  //   var titles = [];
-  //   var subtitles = [];
-  //   for (var i=0; i<routes.length; i++)
-  //   {
-  //     var route = routes[i];
-  //     var routeNum = route.rt;
-  //     var routeName = route.rtnm;
-
-  //     // console.log(routeNum + ' - ' + routeName);
-  //     titles.push(routeNum);
-  //     subtitles.push(routeName);
-  //   }
-  //   return {titles : titles, subtitles : subtitles};
-  // },
-  // savedRoutes : null,
-  // sendNextRoute : function()
-  // {
-  //   // console.log('in send next route, savedRoutes: ' + getroutes.savedRoutes);
-  //   var titles = getroutes.savedRoutes.titles;
-  //   var subtitles = getroutes.savedRoutes.subtitles;
-  //   var index = getroutes.savedRoutes.index;
-
-  //   var nextTitle = titles[index];
-  //   var nextSubtitle = subtitles[index];
-  //   getroutes.savedRoutes.index = index+1;
-
-  //   if (!nextTitle || !nextSubtitle || index > 2)
-  //   {
-  //     nextTitle = "done";
-  //     nextSubtitle = "done";
-  //     getroutes.savedRoutes.index = -1;
-  //   }
-
-  //   // console.log('sending title: ', nextTitle);
-  //   // console.log('sending subtitle: ', nextSubtitle);
-  //   sendMenuEntryMessage(nextTitle, nextSubtitle, index, "routes");    
-  // },
-  // get : function(onSuccess)
-  // {
-  //   if (!OFFLINE_MODE)
-  //   {
-  //     var url = URLUtils.constructURL('getroutes', {});
-  //     URLUtils.sendRequest(url, function(responseText){
-  //       if (!!responseText)
-  //       {
-  //         /* responseText contains a JSON object */
-  //         var data = JSON.parse(responseText);
-  //         var routes = data['bustime-response'].routes;
-  //         var parsed = getroutes.parseRoutes(routes);
-
-  //         getroutes.savedRoutes = {
-  //           titles : parsed.titles,
-  //           subtitles : parsed.subtitles,
-  //           index : 0
-  //         };
-
-  //         sendMenuSetupMessage(parsed.titles.length, "routes");
-  //       }
-  //     });
-  //   }
-  //   else
-  //   {
-  //     getroutes.savedRoutes = {
-  //       titles: ['1', '2', '61A', '61B', 'P1', 'P2', 'P10'],
-  //       subtitles: ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
-  //       index: 0
-  //     };
-
-  //     sendMenuSetupMessage(getroutes.savedRoutes.titles.length, "routes");
-  //   }
-  // }
-
 var getdirections = {
-  parseDirections : function(directions)
-  {
-    var items = [];
-    for (var i=0; i<directions.length; i++)
-    {
-      var direction = directions[i].dir;
-
-      // console.log('dir: ' + direction);
-      items.push(direction);
-    }
-    return items;
-  },
-  savedDirections : null,
+  savedData : null,
   sendNextDirection : function()
   {
-    var titles = getdirections.savedDirections.titles;
-    var index = getdirections.savedDirections.index;
-
-    /*
-    console.log('(2) ~~ titles count: ' + titles.length);
-    for (var i=0; i<titles.length; i++)
-    {
-      console.log('(2) title[' + i + '] = ' + titles[i]);
-    }*/
-    
-    var nextTitle = titles[index];
-
-    getdirections.savedDirections.index = index+1;
-    
-    if (!nextTitle)
-    {
-      nextTitle = "done";
-      getdirections.savedDirections = null;
-    }
-
-    sendMenuEntryMessage(nextTitle, null, index, "directions");
+    Dispatcher.sendNextItem(getdirections, 'getdirections', true);
   },
   get : function(route)
   {
-    if (!OFFLINE_MODE)
-    {
-      var url = URLUtils.constructURL('getdirections', {'rt' : route});
-      console.log('url: ' + url);
-      URLUtils.sendRequest(url, function(responseText){
-        var data = JSON.parse(responseText);
-
-        console.log('success!');
-        console.log('data: ' + data);
-        console.log('response: ' + data['bustime-response']);
-        var directions = data['bustime-response'].directions;
-        console.log('dirs: ' + directions);
-        var items = getdirections.parseDirections(directions);
-
-        getdirections.savedDirections = {
-          titles : items,
-          index : 0
-        };
-
-        sendMenuSetupMessage(items.length, "directions");
-      });
-    }
-    else
-    {
-      getdirections.savedDirections = {
-        titles: ['INBOUND', 'OUTBOUND'],
-        index: 0
-      };
-
-      sendMenuSetupMessage(getdirections.savedDirections.titles.length, "directions");
-    }
+    Dispatcher.sendRequest(getdirections, 'getdirections', {'rt':route}, function(data){
+      return data['bustime-response'].directions;
+    }, null, function(direction) {
+      return direction.dir;
+    }, function(direction) {
+      return null;
+    }, function(direction) {
+      return direction.dir;
+    });
   }
 };
 
-// var getdirections = {
-//   savedDirections : null,
-//   sendNextDirection : function()
-//   {
-//     var titles = getdirections.savedDirections.titles;
-//     var index = getdirections.savedDirections.index;
-
-//     /*
-//     console.log('(2) ~~ titles count: ' + titles.length);
-//     for (var i=0; i<titles.length; i++)
-//     {
-//       console.log('(2) title[' + i + '] = ' + titles[i]);
-//     }*/
-
-//     var nextTitle = titles[index];
-//     if (nextTitle)
-//     {
-//       nextTitle += ' '
-//     }
-
-//     getdirections.savedDirections.index = index+1;
-
-//     if (!nextTitle)
-//     {
-//       nextTitle = "done";
-//       getdirections.savedDirections = null;
-//     }
-
-//     sendMenuEntryMessage(nextTitle, null, index, "directions");
-//   },
-//   get : function(route, direction)
-//   {
-//     // if (!OFFLINE_MODE)
-//     // {
-
-//     // }
-//     // else
-//     // {
-//       getdirections.savedDirections = {
-//         titles: ['inbound', 'outbound'],
-//         index: 0
-//       };
-
-//       sendMenuSetupMessage(getdirections.savedDirections.titles.length, "directions");
-//     // }
-//   }
-// }
-
 var getstops = {
-  savedStops : null,
+  savedData : null,
   sendNextStop : function()
   {
-    var titles = getstops.savedStops.titles;
-    var index = getstops.savedStops.index;
-
-    /*
-    console.log('(2) ~~ titles count: ' + titles.length);
-    for (var i=0; i<titles.length; i++)
-    {
-      console.log('(2) title[' + i + '] = ' + titles[i]);
-    }*/
-    
-    var nextTitle = titles[index];
-
-    getstops.savedStops.index = index+1;
-    
-    if (!nextTitle)
-    {
-      nextTitle = "done";
-      getstops.savedStops = null;
-    }
-
-    sendMenuEntryMessage(nextTitle, null, index, "stops");
+    Dispatcher.sendNextItem(getstops, 'getstops', true);
   },
   get : function(route, direction)
   {
-    // if (!OFFLINE_MODE)
-    // {
+    var params = {
+      'rt' : route,
+      'dir' : direction
+    };
 
-    // }
-    // else
-    // {
-      getstops.savedStops = {
-        titles: ['Negley Station', 'Negley @ Ellesworth'],
-        index: 0
-      };
+    Dispatcher.sendRequest(getstops, 'getstops', params, function(data){
+      return data['bustime-response'].stops;
+    }, null, function(stop) {
+      return stop.stpnm;
+    }, function(stop) {
+      return null;
+    }, function(stop) {
+      return stop.stpid;
+    });
+  }
+}
 
-      // sendMenuSetupMessage(getstops.savedStops.titles.length, "stops");
-    // }
+var getpredictions = {
+  savedData : null,
+  sendNextPrediction : function()
+  {
+
+  },
+  get : function(route, direction, stopid)
+  {
+    var params = {
+      'rt' : route,
+      'dir' : direction,
+      'stpid' : stopid
+    };
+
+    Dispatcher.sendRequest(getpredictions, 'getpredictions', params, function(data) {
+      return data['bustime-response'].prd;
+    }, null, function(prediction) {
+      var route = prediction.rt;
+      var destination = prediction.des;
+      var title = '#' + route + ' to ' + destination;
+      return title;
+    }, function(prediction) {
+      var timeEstimate = prediction.prdctdn;
+      if (!isNaN(timeEstimate))
+      {
+        timeEstimate += ' min';
+      }
+      return timeEstimate;
+    }, function(prediction) {
+      return 'foo'; // dunno what to do here...
+    });
   }
 }
 
 var handleRoutesRequest = function()
 {
-  // console.log('getroutes: ' + getroutes);
-  // console.log('dispatcher: ' + getroutes.dispatcher);
-  // console.log('savedData: ' + getroutes.dispatcher.savedData);
   if (getroutes.savedData)
   {
     if (getroutes.savedData.index >= 0)
@@ -521,7 +374,7 @@ var handleRoutesRequest = function()
      else
      {
       getroutes.savedData.index = 0;
-      sendMenuSetupMessage(getroutes.dispatcher.savedData.titles.length, "getroutes");
+      sendMenuSetupMessage(getroutes.savedData.titles.length, "getroutes");
     }
   }
   else
@@ -530,17 +383,11 @@ var handleRoutesRequest = function()
   }
 }
 
-// getroutes.get();
-// setTimeout(getroutes.get, 3000);
-// handleRoutesRequest();
-// setTimeout(handleRoutesRequest, 3000);
-
 var handleDirectionsRequest = function(payload)
 {
-  if (getdirections.savedDirections)
+  if (getdirections.savedData)
   {
     getdirections.sendNextDirection();
-    // getroutes.sendNextRoute();
   }
   else
   {
@@ -553,7 +400,7 @@ var handleDirectionsRequest = function(payload)
 
 var handleStopsRequest = function(payload)
 {
-  if (getstops.savedStops)
+  if (getstops.savedData)
   {
     getstops.sendNextStop();
   }
@@ -563,6 +410,24 @@ var handleStopsRequest = function(payload)
     var direction = payload['2'];
 
     getstops.get(route, direction);
+  }
+}
+
+var handlePredictionsRequest = function(payload)
+{
+  if (getpredictions.savedData)
+  {
+    getpredictions.sendNextPrediction();
+  }
+  else
+  {
+    var route = payload['1'];
+    var direction = payload['2'];
+    var stopid = payload['3'];
+
+    console.log('rt: ' + route + ', dir: ' + direction + ', stopid: ' + stopid);
+
+    getpredictions.get(route, direction, stopid);
   }
 }
 
@@ -585,5 +450,9 @@ Pebble.addEventListener('appmessage',
     else if (requestType == 'getstops')
     {
       handleStopsRequest(e.payload);
+    }
+    else if (requestType == 'getpredictions')
+    {
+      handlePredictionsRequest(e.payload);
     }
   });
