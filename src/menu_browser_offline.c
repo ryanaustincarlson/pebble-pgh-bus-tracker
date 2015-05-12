@@ -176,11 +176,17 @@ static void window_unload(Window *window) {
   free(browser->menu_titles);
 
   free(browser);
+  s_menu_browsers[s_browser_index] = NULL;
   
   printf("decrementing browser index");
   if (s_browser_index > 0)
   {
     s_browser_index--;
+  }
+  else
+  {
+    free(s_menu_browsers);
+    s_menu_browsers = NULL;
   }
   APP_LOG(APP_LOG_LEVEL_ERROR, "Unloaded");
 }
