@@ -77,10 +77,10 @@ var sendMenuEntryMessage = function(title, subtitle, selector, index, msgType)
 
   Pebble.sendAppMessage(dictionary,
     function(e) {
-      console.log(msgType + " sent to pebble successfully!");
+      // console.log(msgType + " sent to pebble successfully!");
     },
     function(e) {
-      console.log("Error sending " + msgType + " to pebble :(");
+      // console.log("Error sending " + msgType + " to pebble :(");
     }
     );
 }
@@ -130,11 +130,18 @@ var Dispatcher = {
                          extractSubtitleFcn, extractSelectorFcn)
   {
     var url = URLUtils.constructURL(requestType, requestData);
+    console.log('url: ' + url); // TODO: remove
     URLUtils.sendRequest(url, function(responseText) {
       if (!!responseText)
       {
         var data = JSON.parse(responseText);
         var items = extractDataFcn(data);
+        if (!items)
+        {
+          items = []
+        }
+
+        console.log('items: ' + items);
 
         // custom sort?
         if (!!sortDataFcn)
@@ -329,7 +336,7 @@ var getpredictions = {
   savedData : null,
   sendNextPrediction : function()
   {
-
+    Dispatcher.sendNextItem(getpredictions, 'getpredictions', true);
   },
   get : function(route, direction, stopid)
   {
@@ -442,7 +449,7 @@ Pebble.addEventListener('appmessage',
     {
       handleRoutesRequest();
     }
-    else if (requestType == 'getdir')
+    else if (requestType == 'getdirections')
     {
       // handleRoutesRequest();
       handleDirectionsRequest(e.payload);

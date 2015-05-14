@@ -1,1 +1,0 @@
-void push_menu_offline(char *route, char *direction, char *stopid);

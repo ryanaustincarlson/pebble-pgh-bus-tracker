@@ -1,8 +1,5 @@
 #include <pebble.h>
-#include "routes.h"
-// #include "menu_browser.h"
-#include "menu_browser_offline.h"
-#include "directions.h"
+#include "menu_browser.h"
 // #include "str_split.h"
   
 static Window *s_main_window;
@@ -65,13 +62,13 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   switch (cell_index->row) {
     // Favorites
     case 0:
-      push_directions("P1");
+      // push_directions("P1");
       break;
     
     // Routes
     case 1:
       // push_routes();
-      push_menu_offline(NULL, NULL, NULL);
+      push_menu(NULL, NULL, NULL);
       break;
   }
 }
