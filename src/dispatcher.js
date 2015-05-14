@@ -32,7 +32,7 @@ var sendMenuSetupMessage = function(num_entries, msgType)
   {
     num_entries = 6;
   }*/
-  console.log('for ' + msgType + '... sending menu setup message w/ ' + num_entries + ' entries');
+  // console.log('for ' + msgType + '... sending menu setup message w/ ' + num_entries + ' entries');
 
   var dictionary = {
     "KEY_NUM_ENTRIES" : num_entries,
@@ -50,11 +50,12 @@ var sendMenuSetupMessage = function(num_entries, msgType)
 
 var sendMenuEntryMessage = function(title, subtitle, selector, index, msgType)
 {
+  /*
   console.log('sending for ' + msgType + 
               '... title: ' + title + 
               ', subtitle: ' + subtitle + 
               ', selector: ' + selector +
-              ', idx: ' + index);
+              ', idx: ' + index);*/
 
   var dictionary = {
     "KEY_ITEM_INDEX" : index,
@@ -130,7 +131,7 @@ var Dispatcher = {
                          extractSubtitleFcn, extractSelectorFcn)
   {
     var url = URLUtils.constructURL(requestType, requestData);
-    console.log('url: ' + url); // TODO: remove
+    // console.log('url: ' + url);
     URLUtils.sendRequest(url, function(responseText) {
       if (!!responseText)
       {
@@ -140,8 +141,6 @@ var Dispatcher = {
         {
           items = []
         }
-
-        console.log('items: ' + items);
 
         // custom sort?
         if (!!sortDataFcn)

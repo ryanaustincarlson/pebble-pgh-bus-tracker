@@ -202,20 +202,17 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     t = dict_read_next(iterator);
   }
 
-  if (done)
-  {
-    Window *window = browser->menu_window;
-    Layer *window_layer = window_get_root_layer(window);
+  Window *window = browser->menu_window;
+  Layer *window_layer = window_get_root_layer(window);
 
-    if (browser->menu_num_entries > 0)
+  if (browser->menu_num_entries > 0)
+  {
+    if (!browser->menu_layer)
     {
       GRect bounds = layer_get_frame(window_layer);
 
-    // Create the menu layer
       MenuLayer *menu_layer = menu_layer_create(bounds);
       s_menu_browsers[s_browser_index]->menu_layer = menu_layer;
-
-    // printf("menu_layer: %p", menu_layer);
 
       menu_layer_set_callbacks(menu_layer, NULL, (MenuLayerCallbacks){
         .get_num_sections = menu_get_num_sections_callback,
@@ -228,9 +225,13 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 
       menu_layer_set_click_config_onto_window(menu_layer, window);
       layer_add_child(window_layer, menu_layer_get_layer(menu_layer));
-      menu_layer_reload_data(menu_layer);
     }
-    else // no results :(
+    menu_layer_reload_data(browser->menu_layer);
+  }
+
+  if (done)
+  {
+    if (browser->menu_num_entries == 0)
     {
       layer_add_child(window_layer, text_layer_get_layer(s_text_layer_error));
     }
