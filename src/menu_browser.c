@@ -27,9 +27,6 @@
 static MenuBrowser **s_menu_browsers = NULL; // malloc(sizeof(MenuBrowser) * 4);
 static int s_browser_index;
 
-// static char *HEADERS[4] = {"Routes", "Directions", "Stops", "Predictions"};
-// static char *MESSAGES[4] = {"getroutes", "getdirections", "getstops", "getpredictions"};
-
 static TextLayer *s_text_layer_loading = NULL;
 static TextLayer *s_text_layer_error = NULL;
 
@@ -41,6 +38,8 @@ static TextLayer *s_text_layer_error = NULL;
  */
 
 static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
+  // MenuBrowser *browser = s_menu_browsers[s_browser_index];
+  // if (strcmp())
   return 1;
 }
 
@@ -61,13 +60,13 @@ static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, ui
   char *msg = s_menu_browsers[s_browser_index]->msg;
   
   char *header = NULL;
-  if (strcmp(msg, "getroutes") == 0)
+  if (strcmp(msg, MSG_ROUTES) == 0)
     header = "Routes";
-  else if (strcmp(msg, "getdirections") == 0)
+  else if (strcmp(msg, MSG_DIRECTIONS) == 0)
     header = "Directions";
-  else if (strcmp(msg, "getstops") == 0)
+  else if (strcmp(msg, MSG_STOPS) == 0)
     header = "Stops";
-  else if (strcmp(msg, "getpredictions") == 0)
+  else if (strcmp(msg, MSG_PREDICTIONS) == 0)
     header = "Predictions";
 
   switch (section_index) {
@@ -108,19 +107,19 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   
   char *selector = browser->menu_selectors[cell_index->row];
   char *new_msg = NULL;
-  if (strcmp(msg, "getroutes") == 0) // TODO: make constant
+  if (strcmp(msg, MSG_ROUTES) == 0) // TODO: make constant
   {
-    new_msg = "getdirections";
+    new_msg = MSG_DIRECTIONS;
     route = selector;
   }
-  else if (strcmp(msg, "getdirections") == 0)
+  else if (strcmp(msg, MSG_DIRECTIONS) == 0)
   {
-    new_msg = "getstops";
+    new_msg = MSG_STOPS;
     direction = selector;
   }
-  else if (strcmp(msg, "getstops") == 0)
+  else if (strcmp(msg, MSG_STOPS) == 0)
   {
-    new_msg = "getpredictions";
+    new_msg = MSG_PREDICTIONS;
     stopid = selector;
   }
   

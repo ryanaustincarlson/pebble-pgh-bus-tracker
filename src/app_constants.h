@@ -7,3 +7,7 @@
 #define KEY_MSG_TYPE 4
 #define KEY_SELECTORS 5
 
+#define MSG_ROUTES "getroutes"
+#define MSG_DIRECTIONS "getdirections"
+#define MSG_STOPS "getstops"
+#define MSG_PREDICTIONS "getpredictions"
