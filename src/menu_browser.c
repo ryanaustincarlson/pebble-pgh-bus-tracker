@@ -128,11 +128,16 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   // char *direction = "INBOUND";
   // char *stopid = NULL;
 
-  printf("pushing menu with route: %s (%p), direction: %s (%p), stopid: %s (%p)",
-    route, route, direction, direction, stopid, stopid);
+  // TODO: make a special case for setting FAV bit
 
-  s_browser_index++;
-  push_menu(new_msg, route, direction, stopid);
+  if (new_msg)
+  {
+    printf("pushing menu with route: %s (%p), direction: %s (%p), stopid: %s (%p)",
+      route, route, direction, direction, stopid, stopid);
+
+    s_browser_index++;
+    push_menu(new_msg, route, direction, stopid);
+  }
 }
 
 /*
