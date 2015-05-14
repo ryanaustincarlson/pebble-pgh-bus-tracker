@@ -1,5 +1,5 @@
 #include <pebble.h>
-#include "str_split.h"
+#include "str_utils.h"
   
 char *strdup (const char *s) {
   char *d = malloc (strlen (s) + 1);   // Space for length plus nul

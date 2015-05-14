@@ -3,7 +3,7 @@
 // #include "menu_browser.h"
 #include "menu_browser_offline.h"
 #include "directions.h"
-#include "str_split.h"
+// #include "str_split.h"
   
 static Window *s_main_window;
 static MenuLayer *s_menu_layer;

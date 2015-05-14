@@ -442,7 +442,7 @@ Pebble.addEventListener('appmessage',
     {
       handleRoutesRequest();
     }
-    else if (requestType == 'getdirections')
+    else if (requestType == 'getdir')
     {
       // handleRoutesRequest();
       handleDirectionsRequest(e.payload);
