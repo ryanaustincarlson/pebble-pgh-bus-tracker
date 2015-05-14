@@ -19,6 +19,7 @@
   char *route;
   char *direction;
   char *stopid;
+  char *msg;
 } MenuBrowser;
 
 // contains info for routes, direction, stops, predictions
@@ -26,8 +27,8 @@
 static MenuBrowser **s_menu_browsers = NULL; // malloc(sizeof(MenuBrowser) * 4);
 static int s_browser_index;
 
-static char *HEADERS[4] = {"Routes", "Directions", "Stops", "Predictions"};
-static char *MESSAGES[4] = {"getroutes", "getdirections", "getstops", "getpredictions"};
+// static char *HEADERS[4] = {"Routes", "Directions", "Stops", "Predictions"};
+// static char *MESSAGES[4] = {"getroutes", "getdirections", "getstops", "getpredictions"};
 
 static TextLayer *s_text_layer_loading = NULL;
 static TextLayer *s_text_layer_error = NULL;
@@ -57,15 +58,23 @@ static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t s
 }
 
 static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
-  // Determine which section we're working with
+  char *msg = s_menu_browsers[s_browser_index]->msg;
+  
+  char *header = NULL;
+  if (strcmp(msg, "getroutes") == 0)
+    header = "Routes";
+  else if (strcmp(msg, "getdirections") == 0)
+    header = "Directions";
+  else if (strcmp(msg, "getstops") == 0)
+    header = "Stops";
+  else if (strcmp(msg, "getpredictions") == 0)
+    header = "Predictions";
+
   switch (section_index) {
     case 0:
     {
-      char *header = HEADERS[s_browser_index];
-      if (header != NULL)
-      {
+      if (header)
         menu_cell_basic_header_draw(ctx, cell_layer, header);
-      }
       break;
     }
   }
@@ -92,17 +101,28 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 
 static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
+  char *msg = browser->msg;
   char *route = browser->route;
   char *direction = browser->direction;
   char *stopid = browser->stopid;
   
   char *selector = browser->menu_selectors[cell_index->row];
-  if (s_browser_index == 0)
+  char *new_msg = NULL;
+  if (strcmp(msg, "getroutes") == 0) // TODO: make constant
+  {
+    new_msg = "getdirections";
     route = selector;
-  else if (s_browser_index == 1)
+  }
+  else if (strcmp(msg, "getdirections") == 0)
+  {
+    new_msg = "getstops";
     direction = selector;
-  else if (s_browser_index == 2)
+  }
+  else if (strcmp(msg, "getstops") == 0)
+  {
+    new_msg = "getpredictions";
     stopid = selector;
+  }
   
   // char *route = "P1";
   // char *direction = "INBOUND";
@@ -112,7 +132,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
     route, route, direction, direction, stopid, stopid);
 
   s_browser_index++;
-  push_menu(route, direction, stopid);
+  push_menu(new_msg, route, direction, stopid);
 }
 
 /*
@@ -236,8 +256,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     DictionaryIterator *iter;
     app_message_outbox_begin(&iter);
 
-    char *msg = MESSAGES[s_browser_index];
-    dict_write_cstring(iter, 0, msg);
+    dict_write_cstring(iter, 0, browser->msg);
 
     // Send the message requesting next item
     app_message_outbox_send();
@@ -270,6 +289,7 @@ static void initialize_browser(MenuBrowser *browser)
   browser->menu_selectors = NULL;
   browser->menu_num_entries = 0;
 
+  browser->msg = NULL;
   browser->route = NULL;
   browser->direction = NULL;
   browser->stopid = NULL;
@@ -304,12 +324,10 @@ static void window_unload(Window *window) {
   // Destroy the menu layer
   if (menu_layer)
     menu_layer_destroy(menu_layer);
-  browser->menu_layer = NULL;
   
   // Destroy the window
   if (menu_window)
     window_destroy(menu_window);
-  browser->menu_window = NULL;
 
   printf("num entries: %d", browser->menu_num_entries);
   for (int i=0; i<browser->menu_num_entries; i++)
@@ -324,24 +342,19 @@ static void window_unload(Window *window) {
   free(browser->menu_titles);
   free(browser->menu_subtitles);
   free(browser->menu_selectors);
-  browser->menu_titles = NULL;
-  browser->menu_subtitles = NULL;
-  browser->menu_selectors = NULL;
 
   browser->menu_num_entries = 0;
 
+  free(browser->msg);
+
   if (browser->route)
     free(browser->route);
-  browser->route = NULL;
-
   if (browser->direction)
     free(browser->direction);
-  browser->direction = NULL;
-
   if (browser->stopid)
     free(browser->stopid);
-  browser->stopid = NULL;
 
+  initialize_browser(browser); // set all to null
   free(browser);
   s_menu_browsers[s_browser_index] = NULL;
   
@@ -356,6 +369,8 @@ static void window_unload(Window *window) {
 
     text_layer_destroy(s_text_layer_loading);
     text_layer_destroy(s_text_layer_error);
+    s_text_layer_loading = NULL;
+    s_text_layer_error = NULL;
 
     app_message_deregister_callbacks();
   }
@@ -363,7 +378,7 @@ static void window_unload(Window *window) {
   APP_LOG(APP_LOG_LEVEL_ERROR, "Unloaded");
 }
 
-void push_menu(char *route, char *direction, char *stopid)
+void push_menu(char *msg, char *route, char *direction, char *stopid)
 { 
   if (s_menu_browsers == NULL)
   {
@@ -407,7 +422,7 @@ void push_menu(char *route, char *direction, char *stopid)
   app_message_outbox_begin(&iter);
 
   // Add a key-value pair
-  char *msg = MESSAGES[s_browser_index];
+  browser->msg = strdup(msg);
   dict_write_cstring(iter, 0, msg);
 
   if (route != NULL)

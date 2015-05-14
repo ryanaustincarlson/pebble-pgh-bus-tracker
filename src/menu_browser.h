@@ -1,1 +1,1 @@
-void push_menu(char *route, char *direction, char *stopid);
+void push_menu(char *msg, char *route, char *direction, char *stopid);
