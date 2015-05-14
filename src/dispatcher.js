@@ -28,10 +28,10 @@ var URLUtils = {
 
 var sendMenuSetupMessage = function(num_entries, msgType)
 {
-  if (num_entries > 6)
+  /*if (num_entries > 6)
   {
     num_entries = 6;
-  }
+  }*/
   console.log('for ' + msgType + '... sending menu setup message w/ ' + num_entries + ' entries');
 
   var dictionary = {
@@ -106,7 +106,7 @@ var Dispatcher = {
 
     savedData.index = index+1;
 
-    if (!nextTitle || index > 5)
+    if (!nextTitle ) /* || index > 5) */
     {
       nextTitle = "done";
       nextSubtitle = "done";
