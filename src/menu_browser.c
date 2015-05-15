@@ -38,18 +38,32 @@ static TextLayer *s_text_layer_error = NULL;
  */
 
 static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
-  // MenuBrowser *browser = s_menu_browsers[s_browser_index];
-  // if (strcmp())
+  MenuBrowser *browser = s_menu_browsers[s_browser_index];
+  if (strcmp(browser->msg, MSG_PREDICTIONS) == 0)
+    return 2;
   return 1;
 }
 
 static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
-  switch (section_index) {
-    case 0:
-      return s_menu_browsers[s_browser_index]->menu_num_entries;
-    default:
-      return 0;
+  MenuBrowser *browser = s_menu_browsers[s_browser_index];
+  int num_entries = browser->menu_num_entries;
+
+  if (strcmp(browser->msg, MSG_PREDICTIONS) == 0)
+  {
+    if (section_index == 0)
+    {
+      return 1;
+    }
+    else if (section_index == 1)
+    {
+      return num_entries;
+    }
   }
+  else if (section_index == 0)
+  {
+    return num_entries;
+  }
+  return 0;
 }
 
 static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
@@ -57,7 +71,8 @@ static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t s
 }
 
 static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
-  char *msg = s_menu_browsers[s_browser_index]->msg;
+  MenuBrowser *browser = s_menu_browsers[s_browser_index];
+  char *msg = browser->msg;
   
   char *header = NULL;
   if (strcmp(msg, MSG_ROUTES) == 0)
@@ -69,32 +84,32 @@ static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, ui
   else if (strcmp(msg, MSG_PREDICTIONS) == 0)
     header = "Predictions";
 
-  switch (section_index) {
-    case 0:
-    {
-      if (header)
-        menu_cell_basic_header_draw(ctx, cell_layer, header);
-      break;
-    }
+  bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
+  if ((on_prediction_screen && section_index == 1) || (!on_prediction_screen && section_index == 0))
+  {
+    menu_cell_basic_header_draw(ctx, cell_layer, header);
   }
 }
 
 static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
-  char *title = s_menu_browsers[s_browser_index]->menu_titles[cell_index->row];
-  char *subtitle = s_menu_browsers[s_browser_index]->menu_subtitles[cell_index->row];
+  MenuBrowser *browser = s_menu_browsers[s_browser_index];
+  char *title = browser->menu_titles[cell_index->row];
+  char *subtitle = browser->menu_subtitles[cell_index->row];
 
-  // Determine which section we're going to draw in
-  switch (cell_index->section) {
-    case 0:
+  char *favorite_msg = "Mark as Favorite";
+  bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
+  int content_section_index = on_prediction_screen ? 1 : 0;
+  if (on_prediction_screen)
+  {
+    if (cell_index->section ==  0)
     {
-      // Use the row to specify which item we'll draw
-      menu_cell_basic_draw(ctx,
-        cell_layer,
-        title,
-        subtitle,
-        NULL);
-      break;
+      menu_cell_basic_draw(ctx, cell_layer, favorite_msg, NULL, NULL);
     }
+  }
+
+  if (cell_index->section == content_section_index)
+  {
+    menu_cell_basic_draw(ctx, cell_layer, title, subtitle, NULL);
   }
 }
 
