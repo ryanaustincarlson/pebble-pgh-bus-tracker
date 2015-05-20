@@ -19,7 +19,9 @@
   char *route;
   char *direction;
   char *stopid;
+  char *stopname;
   char *msg;
+  bool isfavorite; // only applies to a (route,direction,stopid) tuple
 } MenuBrowser;
 
 // contains info for routes, direction, stops, predictions
@@ -32,6 +34,60 @@ static TextLayer *s_text_layer_error = NULL;
 
 // static Window *s_menu_window;
 // static MenuLayer *s_menu_layer;
+
+/*
+ * MESSAGE SENDING
+ */
+
+void setup_app_message_dictionary(DictionaryIterator *iter, MenuBrowser *browser)
+{
+  if (browser->route != NULL)
+  {
+    dict_write_cstring(iter, 1, browser->route);
+  }
+  if (browser->direction != NULL)
+  {
+    dict_write_cstring(iter, 2, browser->direction);
+  }
+  if (browser->stopid != NULL)
+  {
+    dict_write_cstring(iter, 3, browser->stopid);
+  }
+  if (browser->stopname != NULL)
+  {
+    dict_write_cstring(iter, 4, browser->stopname);
+  }
+}
+
+void send_set_favorites_app_message()
+{
+  MenuBrowser *browser = s_menu_browsers[s_browser_index];
+
+  DictionaryIterator *iter;
+  app_message_outbox_begin(&iter);
+
+  dict_write_cstring(iter, 0, "setfavorite");
+  setup_app_message_dictionary(iter, browser);
+
+  dict_write_int8(iter, 5, browser->isfavorite ? 1 : 0);
+
+  app_message_outbox_send();
+}
+
+void send_menu_app_message()
+{
+  MenuBrowser *browser = s_menu_browsers[s_browser_index];
+
+  DictionaryIterator *iter;
+  app_message_outbox_begin(&iter);
+
+  dict_write_cstring(iter, 0, browser->msg);
+  setup_app_message_dictionary(iter, browser);
+
+  // Send the message!
+  app_message_outbox_send();
+  // printf("sent %s message", msg);
+}
 
 /*
  * MENU
@@ -96,7 +152,16 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
   char *title = browser->menu_titles[cell_index->row];
   char *subtitle = browser->menu_subtitles[cell_index->row];
 
-  char *favorite_msg = "Mark as Favorite";
+  char *favorite_msg = NULL;
+  if (!browser->isfavorite)
+  {
+    favorite_msg = "Mark as Favorite";
+  } 
+  else
+  {
+    favorite_msg = "Clear Favorite";
+  }
+
   bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
   int content_section_index = on_prediction_screen ? 1 : 0;
   if (on_prediction_screen)
@@ -115,42 +180,54 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 
 static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
-  char *msg = browser->msg;
-  char *route = browser->route;
-  char *direction = browser->direction;
-  char *stopid = browser->stopid;
-  
-  char *selector = browser->menu_selectors[cell_index->row];
-  char *new_msg = NULL;
-  if (strcmp(msg, MSG_ROUTES) == 0) // TODO: make constant
-  {
-    new_msg = MSG_DIRECTIONS;
-    route = selector;
-  }
-  else if (strcmp(msg, MSG_DIRECTIONS) == 0)
-  {
-    new_msg = MSG_STOPS;
-    direction = selector;
-  }
-  else if (strcmp(msg, MSG_STOPS) == 0)
-  {
-    new_msg = MSG_PREDICTIONS;
-    stopid = selector;
-  }
-  
-  // char *route = "P1";
-  // char *direction = "INBOUND";
-  // char *stopid = NULL;
 
-  // TODO: make a special case for setting FAV bit
-
-  if (new_msg)
+  bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
+  int section_index = cell_index->section;
+  if ((on_prediction_screen && section_index == 1) || (!on_prediction_screen && section_index == 0))
   {
-    printf("pushing menu with route: %s (%p), direction: %s (%p), stopid: %s (%p)",
-      route, route, direction, direction, stopid, stopid);
+    char *msg = browser->msg;
+    char *route = browser->route;
+    char *direction = browser->direction;
+    char *stopid = browser->stopid;
+    char *stopname = browser->stopname;
 
-    s_browser_index++;
-    push_menu(new_msg, route, direction, stopid);
+    char *selector = browser->menu_selectors[cell_index->row];
+    char *new_msg = NULL;
+
+    if (strcmp(msg, MSG_ROUTES) == 0)
+    {
+      new_msg = MSG_DIRECTIONS;
+      route = selector;
+    }
+    else if (strcmp(msg, MSG_DIRECTIONS) == 0)
+    {
+      new_msg = MSG_STOPS;
+      direction = selector;
+    }
+    else if (strcmp(msg, MSG_STOPS) == 0)
+    {
+      new_msg = MSG_PREDICTIONS;
+      stopid = selector;
+      stopname = browser->menu_titles[cell_index->row];
+    }
+
+    if (new_msg)
+    {
+      printf("pushing menu with route: %s, direction: %s, stopid: %s, stopname: %s",
+        route, direction, stopid, stopname);
+
+      s_browser_index++;
+      push_menu(new_msg, route, direction, stopid, stopname);
+    }
+  }
+  // otherwise check that we ARE on prediction screen and we're selecting the favorites button
+  else if (on_prediction_screen && section_index == 0)
+  {
+    // first we swap isfavorite bit
+    browser->isfavorite = !browser->isfavorite;
+    send_set_favorites_app_message();
+
+    menu_layer_reload_data(browser->menu_layer);
   }
 }
 
@@ -205,6 +282,12 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         subtitle = t->value->cstring;
         break;
       }
+      case KEY_IS_FAVORITE:
+      {
+        browser->isfavorite = (int)t->value->int32 == 1;
+        printf("setting is favorite: %s", browser->isfavorite ? "yes!" : "no!");
+        break;
+      }
     }
 
     if (strcmp("done", t->value->cstring) == 0)
@@ -241,6 +324,11 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       layer_add_child(window_layer, menu_layer_get_layer(menu_layer));
     }
     menu_layer_reload_data(browser->menu_layer);
+
+    if (strcmp(browser->msg, MSG_PREDICTIONS) == 0)
+    {
+      printf("is favorite? %s", browser->isfavorite ? "yes" : "no");
+    }
   }
 
   if (done)
@@ -272,14 +360,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         browser->menu_selectors[item_index]);
     }
 
-
-    DictionaryIterator *iter;
-    app_message_outbox_begin(&iter);
-
-    dict_write_cstring(iter, 0, browser->msg);
-
-    // Send the message requesting next item
-    app_message_outbox_send();
+    send_menu_app_message();
   }
  }
 
@@ -313,6 +394,8 @@ static void initialize_browser(MenuBrowser *browser)
   browser->route = NULL;
   browser->direction = NULL;
   browser->stopid = NULL;
+  browser->stopname = NULL;
+  browser->isfavorite = false;
 }
 
 static void window_load(Window *window) {
@@ -373,6 +456,8 @@ static void window_unload(Window *window) {
     free(browser->direction);
   if (browser->stopid)
     free(browser->stopid);
+  if (browser->stopname)
+    free(browser->stopname);
 
   initialize_browser(browser); // set all to null
   free(browser);
@@ -398,7 +483,7 @@ static void window_unload(Window *window) {
   APP_LOG(APP_LOG_LEVEL_ERROR, "Unloaded");
 }
 
-void push_menu(char *msg, char *route, char *direction, char *stopid)
+void push_menu(char *msg, char *route, char *direction, char *stopid, char *stopname)
 { 
   if (s_menu_browsers == NULL)
   {
@@ -438,30 +523,23 @@ void push_menu(char *msg, char *route, char *direction, char *stopid)
   // Show the Window on the watch, with animated=true
   window_stack_push(window, true);
 
-  DictionaryIterator *iter;
-  app_message_outbox_begin(&iter);
-
   // Add a key-value pair
   browser->msg = strdup(msg);
-  dict_write_cstring(iter, 0, msg);
-
   if (route != NULL)
   {
     browser->route = strdup(route);
-    dict_write_cstring(iter, 1, route);
   }
   if (direction != NULL)
   {
     browser->direction = strdup(direction);
-    dict_write_cstring(iter, 2, direction);
   }
   if (stopid != NULL)
   {
     browser->stopid = strdup(stopid);
-    dict_write_cstring(iter, 3, stopid);
   }
-
-  // Send the message!
-  app_message_outbox_send();
-  // printf("sent %s message", msg);
+  if (stopname != NULL)
+  {
+    browser->stopname = strdup(stopname);
+  }
+  send_menu_app_message();
 }

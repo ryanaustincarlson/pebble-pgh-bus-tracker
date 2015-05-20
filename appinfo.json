@@ -5,7 +5,8 @@
         "KEY_NUM_ENTRIES": 2,
         "KEY_ITEM_INDEX": 3,
         "KEY_MSG_TYPE": 4,
-        "KEY_SELECTORS": 5
+        "KEY_SELECTORS": 5,
+        "KEY_IS_FAVORITE": 6
     },
     "capabilities": [
         ""

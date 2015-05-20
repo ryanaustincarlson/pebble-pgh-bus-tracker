@@ -6,6 +6,7 @@
 #define KEY_ITEM_INDEX 3
 #define KEY_MSG_TYPE 4
 #define KEY_SELECTORS 5
+#define KEY_IS_FAVORITE 6
 
 #define MSG_ROUTES "getroutes"
 #define MSG_DIRECTIONS "getdirections"

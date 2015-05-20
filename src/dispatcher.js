@@ -28,9 +28,9 @@ var URLUtils = {
 
 var sendMenuSetupMessage = function(num_entries, msgType)
 {
-  if (num_entries > 21)
+  if (num_entries > 6)
   {
-    num_entries = 21;
+    num_entries = 6;
   }
   // console.log('for ' + msgType + '... sending menu setup message w/ ' + num_entries + ' entries');
 
@@ -88,7 +88,7 @@ var sendMenuEntryMessage = function(title, subtitle, selector, index, msgType)
 
 var Dispatcher = {
   sendNextItem : function(savedDataContainer, requestType, 
-                          resetSavedDataOnFinish)
+                          resetSavedDataFcn)
   {
     var savedData = savedDataContainer.savedData;
 
@@ -106,23 +106,24 @@ var Dispatcher = {
     var nextSelector = selectors[index];
 
     savedData.index = index+1;
+    savedDataContainer.savedData = savedData;
 
-    if (!nextTitle || index > 20) 
+    if (!nextTitle || index > 5) 
     {
       nextTitle = "done";
       nextSubtitle = "done";
 
-      if (resetSavedDataOnFinish)
-      {
-        savedData = null;
-      }
-      else
-      {
-        savedData.index = -1;
-      }
-    }
+      resetSavedDataFcn();
 
-    savedDataContainer.savedData = savedData;
+      // if (resetSavedDataOnFinish)
+      // {
+      //   savedData = null;
+      // }
+      // else
+      // {
+      //   savedData.index = -1;
+      // }
+    }
 
     sendMenuEntryMessage(nextTitle, nextSubtitle, nextSelector, index, requestType);
   },
@@ -268,7 +269,9 @@ var getroutes = {
   sendNextRoute : function()
   {
     // console.log('.sendNextRoute -> dispatcher.savedData: ' + getroutes.savedData);
-    Dispatcher.sendNextItem(getroutes, 'getroutes', false);
+    Dispatcher.sendNextItem(getroutes, 'getroutes', function() {
+      getroutes.savedData.index = -1;
+    });
   },
   get : function()
   {
@@ -277,11 +280,13 @@ var getroutes = {
     Dispatcher.sendRequest(getroutes, 'getroutes', {}, function(data){
       return data['bustime-response'].routes;
     }, getroutes.sortRoutesFcn, function(route) {
-      return route.rt;
+      return 'P1';
+      // return route.rt;
     }, function(route) {
       return route.rtnm;
     }, function(route) {
-      return route.rt;
+      return 'P1';
+      // return route.rt;
     });
   }
 };
@@ -290,7 +295,9 @@ var getdirections = {
   savedData : null,
   sendNextDirection : function()
   {
-    Dispatcher.sendNextItem(getdirections, 'getdirections', true);
+    Dispatcher.sendNextItem(getdirections, 'getdirections', function() {
+      getdirections.savedData = null;
+    });
   },
   get : function(route)
   {
@@ -310,7 +317,9 @@ var getstops = {
   savedData : null,
   sendNextStop : function()
   {
-    Dispatcher.sendNextItem(getstops, 'getstops', true);
+    Dispatcher.sendNextItem(getstops, 'getstops', function() {
+      getstops.savedData = null;
+    });
   },
   get : function(route, direction)
   {
@@ -333,9 +342,13 @@ var getstops = {
 
 var getpredictions = {
   savedData : null,
+  checkedFavorite : false,
   sendNextPrediction : function()
   {
-    Dispatcher.sendNextItem(getpredictions, 'getpredictions', true);
+    Dispatcher.sendNextItem(getpredictions, 'getpredictions', function() {
+      getpredictions.savedData = null;
+      getpredictions.checkedFavorite = false;
+    });
   },
   get : function(route, direction, stopid)
   {
@@ -421,21 +434,133 @@ var handleStopsRequest = function(payload)
 
 var handlePredictionsRequest = function(payload)
 {
-  if (getpredictions.savedData)
+  var route = payload['1'];
+  var direction = payload['2'];
+  var stopid = payload['3'];
+  var stopname = payload['4'];
+
+  if (getpredictions.checkedFavorite == false)
+  {
+    // TODO: check if we're actually a favorite
+    isfavorite = PersistentFavoritesManager.isFavorite(route, direction, stopid, stopname);
+    var dictionary = {
+      "KEY_IS_FAVORITE" : isfavorite ? 1 : 0,
+    };
+
+    Pebble.sendAppMessage(dictionary, 
+      function(e) {}, 
+      function(e) {});
+    getpredictions.checkedFavorite = true;
+  }
+  else if (getpredictions.savedData)
   {
     getpredictions.sendNextPrediction();
   }
   else
   {
-    var route = payload['1'];
-    var direction = payload['2'];
-    var stopid = payload['3'];
-
     console.log('rt: ' + route + ', dir: ' + direction + ', stopid: ' + stopid);
-
     getpredictions.get(route, direction, stopid);
   }
 }
+
+var PersistentFavoritesManager = {
+  separator : "_@_",
+  favorites : null,
+  loadFavorites : function()
+  {
+    var jsonfavs = localStorage.getItem('favorites');
+    if (jsonfavs == null)
+    {
+      PersistentFavoritesManager.favorites = [];
+    }
+    else
+    {
+      PersistentFavoritesManager.favorites = JSON.parse(jsonfavs);
+    }
+
+    console.log('persistent loaded... ' + JSON.stringify(PersistentFavoritesManager.favorites));
+  },
+  saveFavorites : function()
+  {
+    if (PersistentFavoritesManager.favorites != null)
+    {
+      var jsonfavs = JSON.stringify(PersistentFavoritesManager.favorites);
+      localStorage.setItem('favorites', jsonfavs);
+      console.log('persistent saved... ' + jsonfavs);
+    }
+  },
+  getStorageString : function(route, direction, stopid, stopname)
+  {
+    var sep = PersistentFavoritesManager.separator;
+    var item = route + sep + direction + sep + stopid + sep + stopname;
+    return item;
+  },
+  parseStorageString : function(storageString)
+  {
+    var sep = PersistentFavoritesManager.separator;
+    var split = storageString.split(sep);
+    var item = {
+      route : split[0],
+      direciton : split[1],
+      stopid : split[2],
+      stopname : split[3]
+    };
+    return item;
+  },
+  isFavorite : function(route, direction, stopid, stopname)
+  {
+    console.log("requesting favorites....");
+    if (PersistentFavoritesManager.favorites == null)
+    {
+      PersistentFavoritesManager.loadFavorites();
+    }
+
+    var item = PersistentFavoritesManager.getStorageString(route, direction, stopid, stopname);
+    var isfavorite = PersistentFavoritesManager.favorites.indexOf(item) >= 0;
+    console.log(item + ' is favorite? ' + isfavorite);
+    return isfavorite;
+  },
+  setFavorite : function(route, direction, stopid, stopname, isfavorite)
+  {
+    console.log('received set fav request rt: ' + 
+    route + ', direction: ' + direction + ', stopid: ' +
+    stopid + ', stopname: ' + stopname + ', isfav: ' + isfavorite); 
+
+    if (PersistentFavoritesManager.favorites == null)
+    {
+      PersistentFavoritesManager.loadFavorites();
+    }
+    
+    // use localStorage
+    var item = PersistentFavoritesManager.getStorageString(route, direction, stopid, stopname);
+    console.log('new item: ' + item);
+
+    var changedFavorites = false;
+    if (isfavorite)
+    {
+      /* only add if item's not already there */
+      if (PersistentFavoritesManager.favorites.indexOf(item) == -1)
+      {
+        PersistentFavoritesManager.favorites.push(item);
+        changedFavorites = true;
+      }
+    }
+    else
+    {
+      var index = PersistentFavoritesManager.favorites.indexOf(item);
+      if (index >= 0)
+      {
+        PersistentFavoritesManager.favorites.splice(index, 1);
+        changedFavorites = true;
+      }
+    }
+
+    if (changedFavorites)
+    {
+      PersistentFavoritesManager.saveFavorites();
+    }
+  }
+};
 
 // Listen for when an AppMessage is received
 Pebble.addEventListener('appmessage',
@@ -460,5 +585,16 @@ Pebble.addEventListener('appmessage',
     else if (requestType == 'getpredictions')
     {
       handlePredictionsRequest(e.payload);
+    }
+    else if (requestType == 'setfavorite')
+    {
+      var route = e.payload['1'];
+      var direction = e.payload['2'];
+      var stopid = e.payload['3'];
+      var stopname = e.payload['4'];
+      var isfavorite = e.payload['5'] == 1;
+
+      PersistentFavoritesManager.setFavorite(route, 
+        direction, stopid, stopname, isfavorite);
     }
   });
