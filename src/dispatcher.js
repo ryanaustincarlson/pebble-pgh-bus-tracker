@@ -28,9 +28,9 @@ var URLUtils = {
 
 var sendMenuSetupMessage = function(num_entries, msgType)
 {
-  if (num_entries > 6)
+  if (num_entries > 21)
   {
-    num_entries = 6;
+    num_entries = 21;
   }
   // console.log('for ' + msgType + '... sending menu setup message w/ ' + num_entries + ' entries');
 
@@ -44,7 +44,7 @@ var sendMenuSetupMessage = function(num_entries, msgType)
       // console.log("for " + msgType + "... # entries sent to pebble successfully!");
     },
     function(e) {
-      // console.log("Error sending # entries to pebble :(");
+      console.log("Error sending # entries to pebble :(");
     });
 }
 
@@ -81,7 +81,7 @@ var sendMenuEntryMessage = function(title, subtitle, selector, index, msgType)
       // console.log(msgType + " sent to pebble successfully!");
     },
     function(e) {
-      // console.log("Error sending " + msgType + " to pebble :(");
+      console.log("Error sending " + msgType + " to pebble :(");
     }
     );
 }
@@ -108,12 +108,12 @@ var Dispatcher = {
     savedData.index = index+1;
     savedDataContainer.savedData = savedData;
 
-    if (!nextTitle || index > 5) 
+    if (!nextTitle || index > 20) 
     {
       nextTitle = "done";
       nextSubtitle = "done";
 
-      resetSavedDataFcn();
+      // resetSavedDataFcn();
 
       // if (resetSavedDataOnFinish)
       // {
@@ -378,70 +378,63 @@ var getpredictions = {
   }
 }
 
-var handleRoutesRequest = function()
+var handleRoutesRequest = function(should_init)
 {
-  if (getroutes.savedData)
+  if (should_init)
   {
-    if (getroutes.savedData.index >= 0)
+    if (getroutes.savedData == null)
     {
-      getroutes.sendNextRoute();
+      getroutes.get();
     }
-    /* else, this is not the first time we're requesting routes
-     * so there's really no need to make a network request, just
-     * reset the index and re-send the data!
-     */ 
-     else
-     {
+    else
+    {
+      /* else, this is not the first time we're requesting routes
+      * so there's really no need to make a network request, just
+      * reset the index and re-send the data!
+      */       
       getroutes.savedData.index = 0;
       sendMenuSetupMessage(getroutes.savedData.titles.length, "getroutes");
     }
   }
   else
   {
-    getroutes.get(); 
+    getroutes.sendNextRoute();
   }
 }
 
-var handleDirectionsRequest = function(payload)
+var handleDirectionsRequest = function(should_init, route)
 {
-  if (getdirections.savedData)
+  if (should_init)
+  {
+    getdirections.savedData = null;
+    getdirections.get(route);
+  }
+  else
   {
     getdirections.sendNextDirection();
   }
-  else
-  {
-    var route = payload['1'];
-    // console.log("get directions with route: " + route);
-
-    getdirections.get(route);
-  }
 }
 
-var handleStopsRequest = function(payload)
+var handleStopsRequest = function(should_init, route, direction)
 {
-  if (getstops.savedData)
+  if (should_init)
+  {
+    getstops.savedData = null;
+    getstops.get(route, direction);
+  }
+  else
   {
     getstops.sendNextStop();
   }
-  else
-  {
-    var route = payload['1'];
-    var direction = payload['2'];
-
-    getstops.get(route, direction);
-  }
 }
 
-var handlePredictionsRequest = function(payload)
+var handlePredictionsRequest = function(should_init, route, direction, stopid, stopname)
 {
-  var route = payload['1'];
-  var direction = payload['2'];
-  var stopid = payload['3'];
-  var stopname = payload['4'];
-
-  if (getpredictions.checkedFavorite == false)
+  if (should_init)
   {
-    // TODO: check if we're actually a favorite
+    getpredictions.checkedFavorite = false; // FIXME: prob don't need this now
+    getpredictions.savedData = null;
+
     isfavorite = PersistentFavoritesManager.isFavorite(route, direction, stopid, stopname);
     var dictionary = {
       "KEY_IS_FAVORITE" : isfavorite ? 1 : 0,
@@ -452,14 +445,13 @@ var handlePredictionsRequest = function(payload)
       function(e) {});
     getpredictions.checkedFavorite = true;
   }
-  else if (getpredictions.savedData)
+  else if (getpredictions.savedData == null)
   {
-    getpredictions.sendNextPrediction();
+    getpredictions.get(route, direction, stopid);
   }
   else
   {
-    console.log('rt: ' + route + ', dir: ' + direction + ', stopid: ' + stopid);
-    getpredictions.get(route, direction, stopid);
+    getpredictions.sendNextPrediction();
   }
 }
 
@@ -501,7 +493,7 @@ var PersistentFavoritesManager = {
     var split = storageString.split(sep);
     var item = {
       route : split[0],
-      direciton : split[1],
+      direction : split[1],
       stopid : split[2],
       stopname : split[3]
     };
@@ -565,33 +557,40 @@ var PersistentFavoritesManager = {
 // Listen for when an AppMessage is received
 Pebble.addEventListener('appmessage',
   function(e) {
+    var payload = e.payload
     // console.log("AppMessage received!");
-    var requestType = e.payload["0"];
+    var requestType = payload['0'];
     // console.log('request type: ' + requestType);
-    
+
+    var route = payload['1'];
+    var direction = payload['2'];
+    var stopid = payload['3'];
+    var stopname = payload['4'];
+    var should_init = payload['5'] == 1;
+
     if (requestType == 'getroutes')
     {
-      handleRoutesRequest();
+      handleRoutesRequest(should_init);
     }
     else if (requestType == 'getdirections')
     {
       // handleRoutesRequest();
-      handleDirectionsRequest(e.payload);
+      handleDirectionsRequest(should_init, route);
     }
     else if (requestType == 'getstops')
     {
-      handleStopsRequest(e.payload);
+      handleStopsRequest(should_init, route, direction);
     }
     else if (requestType == 'getpredictions')
     {
-      handlePredictionsRequest(e.payload);
+      handlePredictionsRequest(should_init, route, direction, stopid, stopname);
     }
     else if (requestType == 'setfavorite')
     {
-      var route = e.payload['1'];
-      var direction = e.payload['2'];
-      var stopid = e.payload['3'];
-      var stopname = e.payload['4'];
+      // var route = e.payload['1'];
+      // var direction = e.payload['2'];
+      // var stopid = e.payload['3'];
+      // var stopname = e.payload['4'];
       var isfavorite = e.payload['5'] == 1;
 
       PersistentFavoritesManager.setFavorite(route, 

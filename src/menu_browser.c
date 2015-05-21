@@ -74,7 +74,7 @@ void send_set_favorites_app_message()
   app_message_outbox_send();
 }
 
-void send_menu_app_message()
+void send_menu_app_message(bool should_init)
 {
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
 
@@ -83,6 +83,8 @@ void send_menu_app_message()
 
   dict_write_cstring(iter, 0, browser->msg);
   setup_app_message_dictionary(iter, browser);
+
+  dict_write_int8(iter, 5, should_init ? 1 : 0);
 
   // Send the message!
   app_message_outbox_send();
@@ -246,6 +248,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   char *title = NULL;
   char *subtitle = NULL;
   char *selector = NULL;
+  char *msg_type = NULL;
 
   Tuple *t = dict_read_first(iterator);
   while (t != NULL)
@@ -280,6 +283,11 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       case KEY_SUBTITLES:
       {
         subtitle = t->value->cstring;
+        break;
+      }
+      case KEY_MSG_TYPE:
+      {
+        // msg_type = t->value->cstring;
         break;
       }
       case KEY_IS_FAVORITE:
@@ -360,9 +368,9 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         browser->menu_selectors[item_index]);
     }
 
-    send_menu_app_message();
+    send_menu_app_message(false);
   }
- }
+}
 
  static void inbox_dropped_callback(AppMessageResult reason, void *context) {
   APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
@@ -399,7 +407,6 @@ static void initialize_browser(MenuBrowser *browser)
 }
 
 static void window_load(Window *window) {
-  
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_frame(window_layer);
   if (!s_text_layer_loading)
@@ -425,22 +432,35 @@ static void window_unload(Window *window) {
   Window *menu_window = browser->menu_window;
 
   // Destroy the menu layer
-  if (menu_layer)
+  if (menu_layer != NULL)
+  {
     menu_layer_destroy(menu_layer);
+  }
   
   // Destroy the window
-  if (menu_window)
+  if (menu_window != NULL)
+  {
     window_destroy(menu_window);
+  }
 
   printf("num entries: %d", browser->menu_num_entries);
   for (int i=0; i<browser->menu_num_entries; i++)
   {
-    free(browser->menu_titles[i]);
-    free(browser->menu_selectors[i]);
+    if (browser->menu_titles[i] != NULL)
+    {
+      free(browser->menu_titles[i]);
+    }
+
+    if (browser->menu_selectors[i] != NULL)
+    {
+      free(browser->menu_selectors[i]);
+    }
 
     // subtitles are optional, so we need to check
     if (browser->menu_subtitles[i])
+    {
       free(browser->menu_subtitles[i]);
+    }
   }
   free(browser->menu_titles);
   free(browser->menu_subtitles);
@@ -450,14 +470,22 @@ static void window_unload(Window *window) {
 
   free(browser->msg);
 
-  if (browser->route)
+  if (browser->route != NULL)
+  {
     free(browser->route);
-  if (browser->direction)
+  }
+  if (browser->direction != NULL)
+  {
     free(browser->direction);
-  if (browser->stopid)
+  }
+  if (browser->stopid != NULL)
+  {
     free(browser->stopid);
-  if (browser->stopname)
+  }
+  if (browser->stopname != NULL)
+  {
     free(browser->stopname);
+  }
 
   initialize_browser(browser); // set all to null
   free(browser);
@@ -541,5 +569,5 @@ void push_menu(char *msg, char *route, char *direction, char *stopid, char *stop
   {
     browser->stopname = strdup(stopname);
   }
-  send_menu_app_message();
+  send_menu_app_message(true);
 }
