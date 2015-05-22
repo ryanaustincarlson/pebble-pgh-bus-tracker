@@ -50,8 +50,8 @@ var sendMenuSetupMessage = function(num_entries, msgType)
 
 var sendMenuEntryMessage = function(title, subtitle, selector, index, msgType)
 {
-  /*
-  console.log('sending for ' + msgType + 
+  
+  /*console.log('sending for ' + msgType + 
               '... title: ' + title + 
               ', subtitle: ' + subtitle + 
               ', selector: ' + selector +
@@ -438,6 +438,7 @@ var handlePredictionsRequest = function(should_init, route, direction, stopid, s
     isfavorite = PersistentFavoritesManager.isFavorite(route, direction, stopid, stopname);
     var dictionary = {
       "KEY_IS_FAVORITE" : isfavorite ? 1 : 0,
+      "KEY_MSG_TYPE" : "getpredictions"
     };
 
     Pebble.sendAppMessage(dictionary, 

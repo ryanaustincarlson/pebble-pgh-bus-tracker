@@ -8,6 +8,8 @@
  * STATIC VARS
  */
 
+ enum LOADING_STATE {LOADING_NOT_STARTED=0, LOADING_STARTED=1, LOADING_DONE=2};
+
  typedef struct 
  {
   Window *menu_window;
@@ -16,6 +18,9 @@
   char **menu_subtitles;
   char **menu_selectors; // what to send back to the phone
   int menu_num_entries;
+
+  enum LOADING_STATE loading_state;
+
   char *route;
   char *direction;
   char *stopid;
@@ -25,15 +30,16 @@
 } MenuBrowser;
 
 // contains info for routes, direction, stops, predictions
-// should be size >=4
-static MenuBrowser **s_menu_browsers = NULL; // malloc(sizeof(MenuBrowser) * 4);
+static MenuBrowser **s_menu_browsers = NULL;
 static int s_browser_index;
 
 static TextLayer *s_text_layer_loading = NULL;
 static TextLayer *s_text_layer_error = NULL;
 
-// static Window *s_menu_window;
-// static MenuLayer *s_menu_layer;
+// it'd be nice if these are all in a struct or something...
+static AppTimer *s_timer = NULL; // timer that calls a fcn to send the first app msg
+static bool s_timer_fired = false; // true if the timer has already fired
+static int s_timer_browser_index = -1; // the browser index that we expect when the timer fires
 
 /*
  * MESSAGE SENDING
@@ -89,6 +95,18 @@ void send_menu_app_message(bool should_init)
   // Send the message!
   app_message_outbox_send();
   // printf("sent %s message", msg);
+}
+
+void send_menu_app_message_helper(void *should_init_ptr)
+{
+  s_timer_fired = true;
+  if (s_timer_browser_index == s_browser_index)
+  {
+    printf("timer browser idx: %d, browser_index: %d", s_timer_browser_index, s_browser_index);
+    bool should_init = (bool)should_init_ptr;
+    printf("sending menu app msg");
+    send_menu_app_message(should_init);
+  }
 }
 
 /*
@@ -242,8 +260,10 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   // APP_LOG(APP_LOG_LEVEL_ERROR, "Inbox Received");
 
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
+  browser->loading_state = LOADING_STARTED;
 
   bool done = false;
+  int num_entries = -1;
   int item_index = -1;
   char *title = NULL;
   char *subtitle = NULL;
@@ -257,12 +277,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     {
       case KEY_NUM_ENTRIES:
       {
-        int num_entries = (int)t->value->int32;
-        // printf("num entries: %d", num_entries);
-        browser->menu_titles = calloc(num_entries, sizeof(char *));
-        browser->menu_selectors = calloc(num_entries, sizeof(char *));
-
-        browser->menu_subtitles = calloc(num_entries, sizeof(char *));
+        num_entries = (int)t->value->int32;
         break;
       }
       case KEY_ITEM_INDEX:
@@ -287,7 +302,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       }
       case KEY_MSG_TYPE:
       {
-        // msg_type = t->value->cstring;
+        msg_type = t->value->cstring;
         break;
       }
       case KEY_IS_FAVORITE:
@@ -302,9 +317,22 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     {
       // APP_LOG(APP_LOG_LEVEL_ERROR, "Done finding messages!");
       done = true;
+      browser->loading_state = LOADING_DONE;
     }
 
     t = dict_read_next(iterator);
+  }
+
+  // we want to make sure we're creating space for entries
+  // in the proper browser
+  //
+  // this is mostly to protect against wonkiness if a user hits
+  // the back button before the first entry has loaded
+  if (num_entries > 0 && strcmp(msg_type, browser->msg) == 0)
+  {
+    browser->menu_titles = calloc(num_entries, sizeof(char *));
+    browser->menu_selectors = calloc(num_entries, sizeof(char *));
+    browser->menu_subtitles = calloc(num_entries, sizeof(char *));
   }
 
   Window *window = browser->menu_window;
@@ -332,11 +360,6 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       layer_add_child(window_layer, menu_layer_get_layer(menu_layer));
     }
     menu_layer_reload_data(browser->menu_layer);
-
-    if (strcmp(browser->msg, MSG_PREDICTIONS) == 0)
-    {
-      printf("is favorite? %s", browser->isfavorite ? "yes" : "no");
-    }
   }
 
   if (done)
@@ -348,7 +371,27 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   }
   else // not done - keep going
   {
-    if (item_index != -1)
+    MenuBrowser *onscreen_browser = browser;
+
+    // if there's an errant message from the previous screen,
+    // we need to catch it and place it in the CORRECT browser
+    if (strcmp(msg_type, browser->msg) != 0)
+    {
+      printf("LOADING was interrupted w/ msg_type = %s", msg_type);
+      browser = NULL;
+      for (int msgIdx=0; msgIdx<s_browser_index; msgIdx++)
+      {
+        MenuBrowser *tmp_browser = s_menu_browsers[msgIdx];
+        if (strcmp(msg_type, tmp_browser->msg) == 0)
+        {
+          printf("FOUND replacement at index = %d", msgIdx);
+          browser = tmp_browser;
+          break;
+        }
+      }
+    }
+
+    if (item_index != -1 && browser != NULL)
     {
       if (item_index+1 > browser->menu_num_entries)
       {
@@ -358,8 +401,10 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       browser->menu_titles[item_index] = strdup(title);
       browser->menu_selectors[item_index] = strdup(selector);
 
-      if (subtitle)
+      if (subtitle != NULL)
+      {
         browser->menu_subtitles[item_index] = strdup(subtitle);
+      }
 
       printf("idx: %d, title: %s, subt: %s, sel: %s", 
         item_index, 
@@ -368,7 +413,10 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         browser->menu_selectors[item_index]);
     }
 
-    send_menu_app_message(false);
+    if (onscreen_browser == browser)
+    {
+      send_menu_app_message(false);
+    }
   }
 }
 
@@ -384,9 +432,10 @@ static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
   // APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
 }
 
- /*
-  * WINDOW MANAGEMENT
-  */
+/*
+ * WINDOW MANAGEMENT
+ */
+
 
 static void initialize_browser(MenuBrowser *browser)
 {
@@ -397,6 +446,8 @@ static void initialize_browser(MenuBrowser *browser)
   browser->menu_subtitles = NULL;
   browser->menu_selectors = NULL;
   browser->menu_num_entries = 0;
+
+  browser->loading_state = LOADING_NOT_STARTED;
 
   browser->msg = NULL;
   browser->route = NULL;
@@ -422,11 +473,22 @@ static void window_load(Window *window) {
     // TODO: make this prettier!
     s_text_layer_error = text_layer_create(bounds);
     text_layer_set_text(s_text_layer_error, "Error! No results found.");
-  }
-  
+  } 
 }
 
 static void window_unload(Window *window) {
+  printf("window unloading...");
+  // kill the timer so that we don't accidentally start sending
+  // messages on a already-popped menu
+  if (!s_timer_fired && s_timer != NULL)
+  {
+    app_timer_cancel(s_timer);
+    s_timer_fired = false;
+  }
+  s_timer = NULL;
+
+  // int browser_index = s_browser_index--;
+
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
   MenuLayer *menu_layer = browser->menu_layer;
   Window *menu_window = browser->menu_window;
@@ -494,6 +556,16 @@ static void window_unload(Window *window) {
   if (s_browser_index > 0)
   {
     s_browser_index--;
+
+    // the browser that'll soon be on the top of the stack
+    MenuBrowser *backBrowser = s_menu_browsers[s_browser_index];
+    if (backBrowser->loading_state != LOADING_DONE)
+    {
+      printf("back browser not finished loading!");
+      menu_layer_reload_data(backBrowser->menu_layer);
+      bool should_init = backBrowser->loading_state == LOADING_NOT_STARTED;
+      send_menu_app_message(should_init);
+    }
   }
   else
   {
@@ -569,5 +641,11 @@ void push_menu(char *msg, char *route, char *direction, char *stopid, char *stop
   {
     browser->stopname = strdup(stopname);
   }
-  send_menu_app_message(true);
+  // send_menu_app_message(true);
+
+  s_timer_browser_index = s_browser_index;
+  s_timer = app_timer_register(
+    500, 
+    send_menu_app_message_helper, 
+    (void *)true);
 }
