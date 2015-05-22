@@ -477,7 +477,6 @@ static void window_load(Window *window) {
 }
 
 static void window_unload(Window *window) {
-  printf("window unloading...");
   // kill the timer so that we don't accidentally start sending
   // messages on a already-popped menu
   if (!s_timer_fired && s_timer != NULL)
@@ -505,7 +504,6 @@ static void window_unload(Window *window) {
     window_destroy(menu_window);
   }
 
-  printf("num entries: %d", browser->menu_num_entries);
   for (int i=0; i<browser->menu_num_entries; i++)
   {
     if (browser->menu_titles[i] != NULL)
