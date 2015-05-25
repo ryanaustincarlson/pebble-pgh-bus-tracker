@@ -388,14 +388,6 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     layer_remove_from_parent(text_layer_get_layer(s_text_layer_loading));
   }
 
-  printf("window layer: %p, menu layer: %p, loading layer: %p",
-    window_layer, 
-    menu_layer_get_layer(browser->menu_layer), 
-    text_layer_get_layer(s_text_layer_loading));
-  printf("windows.. loading: %p, menu: %p", 
-    layer_get_window(text_layer_get_layer(s_text_layer_loading)),
-    layer_get_window(menu_layer_get_layer(browser->menu_layer)));
-
   if (done)
   {
     if (browser->menu_num_entries == 0)
@@ -492,7 +484,7 @@ static void initialize_browser(MenuBrowser *browser)
   browser->isfavorite = false;
 }
 
-static void free_browser(MenuBrowser *browser)
+static void free_browser_lists(MenuBrowser *browser)
 {
   for (int i=0; i<browser->menu_num_entries; i++)
   {
@@ -512,9 +504,22 @@ static void free_browser(MenuBrowser *browser)
       free(browser->menu_subtitles[i]);
     }
   }
-  free(browser->menu_titles);
-  free(browser->menu_subtitles);
-  free(browser->menu_selectors);
+  if (browser->menu_titles != NULL)
+  {
+    free(browser->menu_titles);
+  }
+  browser->menu_titles = NULL;
+  if (browser->menu_subtitles != NULL)
+  {
+    free(browser->menu_subtitles);
+  }
+  browser->menu_subtitles = NULL;
+
+  if (browser->menu_selectors != NULL)
+  {
+    free(browser->menu_selectors);
+  }
+  browser->menu_selectors = NULL;
 
   browser->menu_num_entries = 0;
 }
@@ -566,7 +571,7 @@ static void window_unload(Window *window) {
     window_destroy(menu_window);
   }
 
-  free_browser(browser);
+  free_browser_lists(browser);
 
   free(browser->msg);
 
@@ -611,7 +616,7 @@ static void window_unload(Window *window) {
     if (strcmp(backBrowser->msg, MSG_FAVORITES) == 0)
     {
       printf("returning to favorites menu!");
-      free_browser(backBrowser);
+      free_browser_lists(backBrowser);
 
       layer_add_child(window_get_root_layer(backBrowser->menu_window), 
         text_layer_get_layer(s_text_layer_loading));
