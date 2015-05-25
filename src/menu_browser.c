@@ -2,6 +2,7 @@
 #include "menu_browser.h"
 
 #include "app_constants.h"
+#include "app_colors.h"
 #include "str_utils.h"
 
 /*
@@ -35,12 +36,83 @@ static MenuBrowser **s_menu_browsers = NULL;
 static int s_browser_index;
 
 static TextLayer *s_text_layer_loading = NULL;
-static TextLayer *s_text_layer_error = NULL;
+static TextLayer *s_text_layer_noresults = NULL;
 
 // it'd be nice if these are all in a struct or something...
 static AppTimer *s_timer = NULL; // timer that calls a fcn to send the first app msg
 static bool s_timer_fired = false; // true if the timer has already fired
 static int s_timer_browser_index = -1; // the browser index that we expect when the timer fires
+
+/*
+ * Text Layers
+ */
+
+void setup_text_layer_noresults(Window *window)
+{
+  if (!s_text_layer_noresults)
+  {
+    Layer *window_layer = window_get_root_layer(window);
+    GRect bounds = layer_get_frame(window_layer);
+
+    // TODO: make this prettier!
+    s_text_layer_noresults = text_layer_create(bounds);
+    text_layer_set_font(s_text_layer_noresults, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+    text_layer_set_text_alignment(s_text_layer_noresults, GTextAlignmentCenter);
+    #ifdef PBL_COLOR
+      // text_layer_set_text_color(s_text_layer_noresults, get_color_error());
+      text_layer_set_background_color(s_text_layer_noresults, get_color_error());
+    #endif
+  }
+
+  MenuBrowser *browser = s_menu_browsers[s_browser_index];
+  char *keyword = NULL;
+  if (strcmp(browser->msg, MSG_ROUTES) == 0)
+  {
+    keyword = "routes";
+  }
+  else if (strcmp(browser->msg, MSG_DIRECTIONS) == 0)
+  {
+    keyword = "directions";
+  }
+  else if (strcmp(browser->msg, MSG_STOPS) == 0)
+  {
+    keyword = "stops";
+  }
+  else if (strcmp(browser->msg, MSG_PREDICTIONS) == 0)
+  {
+    keyword = "predictions";
+  }
+  else if (strcmp(browser->msg, MSG_FAVORITES) == 0)
+  {
+    keyword = "favorites";
+  }
+  char *start = "No ";
+  char *end = "\nto display.";
+  char *message = calloc(strlen(start) + strlen(keyword) + strlen(end) + 1, sizeof(char));
+  strcat(message, start);
+  strcat(message, keyword);
+  strcat(message, end);
+  text_layer_set_text(s_text_layer_noresults, message);
+  free(message);
+}
+
+void setup_text_layer_loading(Window *window)
+{
+  if (!s_text_layer_loading)
+  {
+    Layer *window_layer = window_get_root_layer(window);
+    GRect bounds = layer_get_frame(window_layer);
+
+    s_text_layer_loading = text_layer_create(bounds);
+    text_layer_set_font(s_text_layer_loading, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+    text_layer_set_text_alignment(s_text_layer_loading, GTextAlignmentCenter);
+    text_layer_set_text(s_text_layer_loading, "Loading...");
+    #ifdef PBL_COLOR
+      text_layer_set_text_color(s_text_layer_loading, get_color_normal());
+      // text_layer_set_background_color(s_text_layer_loading, get_color_normal());
+    #endif
+  }
+}
 
 /*
  * MESSAGE SENDING
@@ -380,7 +452,11 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       });
 
       menu_layer_set_click_config_onto_window(menu_layer, window);
-      printf("ADDING menu layer!");
+
+      #ifdef PBL_COLOR
+        menu_layer_colorize(menu_layer);
+      #endif
+      
       layer_add_child(window_layer, menu_layer_get_layer(menu_layer));
     }
     menu_layer_reload_data(browser->menu_layer);
@@ -392,7 +468,8 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   {
     if (browser->menu_num_entries == 0)
     {
-      layer_add_child(window_layer, text_layer_get_layer(s_text_layer_error));
+      setup_text_layer_noresults(window);
+      layer_add_child(window_layer, text_layer_get_layer(s_text_layer_noresults));
     }
   }
   else // not done - keep going
@@ -525,22 +602,13 @@ static void free_browser_lists(MenuBrowser *browser)
 }
 
 static void window_load(Window *window) {
-  Layer *window_layer = window_get_root_layer(window);
-  GRect bounds = layer_get_frame(window_layer);
-  if (!s_text_layer_loading)
-  {
-    // TODO: make this prettier!
-    s_text_layer_loading = text_layer_create(bounds);
-    text_layer_set_text(s_text_layer_loading, "Loading...");
-  }
-  layer_add_child(window_layer, text_layer_get_layer(s_text_layer_loading));
+  #ifdef PBL_COLOR
+    window_colorize(window);
+  #endif
+  setup_text_layer_loading(window);
 
-  if (!s_text_layer_error)
-  {
-    // TODO: make this prettier!
-    s_text_layer_error = text_layer_create(bounds);
-    text_layer_set_text(s_text_layer_error, "Error! No results found.");
-  } 
+  Layer *window_layer = window_get_root_layer(window);
+  layer_add_child(window_layer, text_layer_get_layer(s_text_layer_loading));
 }
 
 static void window_unload(Window *window) {
@@ -630,9 +698,9 @@ static void window_unload(Window *window) {
     s_menu_browsers = NULL;
 
     text_layer_destroy(s_text_layer_loading);
-    text_layer_destroy(s_text_layer_error);
+    text_layer_destroy(s_text_layer_noresults);
     s_text_layer_loading = NULL;
-    s_text_layer_error = NULL;
+    s_text_layer_noresults = NULL;
 
     app_message_deregister_callbacks();
   }

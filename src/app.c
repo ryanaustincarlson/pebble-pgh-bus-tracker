@@ -1,5 +1,6 @@
 #include <pebble.h>
 #include "menu_browser.h"
+#include "app_colors.h"
 // #include "str_split.h"
   
 static Window *s_main_window;
@@ -78,6 +79,10 @@ static void main_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_frame(window_layer);
 
+  #ifdef PBL_COLOR
+    window_colorize(window);
+  #endif
+
   // Create the menu layer
   s_menu_layer = menu_layer_create(bounds);
   menu_layer_set_callbacks(s_menu_layer, NULL, (MenuLayerCallbacks){
@@ -88,6 +93,11 @@ static void main_window_load(Window *window) {
     .draw_row = menu_draw_row_callback,
     .select_click = menu_select_callback,
   });
+
+  #ifdef PBL_COLOR
+    // menu_layer_pad_bottom_enable(s_menu_layer, true);
+    menu_layer_colorize(s_menu_layer);
+  #endif
 
   // Bind the menu layer's click config provider to the window for interactivity
   menu_layer_set_click_config_onto_window(s_menu_layer, window);
