@@ -26,6 +26,7 @@
   char *stopid;
   char *stopname;
   char *msg;
+  char *extra; // anything else we need to store
   bool isfavorite; // only applies to a (route,direction,stopid) tuple
 } MenuBrowser;
 
@@ -63,6 +64,10 @@ void setup_app_message_dictionary(DictionaryIterator *iter, MenuBrowser *browser
   {
     dict_write_cstring(iter, 4, browser->stopname);
   }
+  if (browser->extra != NULL)
+  {
+    dict_write_cstring(iter, 5, browser->extra);
+  }
 }
 
 void send_set_favorites_app_message()
@@ -75,7 +80,7 @@ void send_set_favorites_app_message()
   dict_write_cstring(iter, 0, "setfavorite");
   setup_app_message_dictionary(iter, browser);
 
-  dict_write_int8(iter, 5, browser->isfavorite ? 1 : 0);
+  dict_write_int8(iter, 6, browser->isfavorite ? 1 : 0);
 
   app_message_outbox_send();
 }
@@ -90,7 +95,7 @@ void send_menu_app_message(bool should_init)
   dict_write_cstring(iter, 0, browser->msg);
   setup_app_message_dictionary(iter, browser);
 
-  dict_write_int8(iter, 5, should_init ? 1 : 0);
+  dict_write_int8(iter, 6, should_init ? 1 : 0);
 
   // Send the message!
   app_message_outbox_send();
@@ -152,13 +157,25 @@ static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, ui
   
   char *header = NULL;
   if (strcmp(msg, MSG_ROUTES) == 0)
+  {
     header = "Routes";
+  }
   else if (strcmp(msg, MSG_DIRECTIONS) == 0)
+  {
     header = "Directions";
+  }
   else if (strcmp(msg, MSG_STOPS) == 0)
+  {
     header = "Stops";
+  }
   else if (strcmp(msg, MSG_PREDICTIONS) == 0)
+  {
     header = "Predictions";
+  }
+  else if (strcmp(msg, MSG_FAVORITES) == 0)
+  {
+    header = "Favorites";
+  }
 
   bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
   if ((on_prediction_screen && section_index == 1) || (!on_prediction_screen && section_index == 0))
@@ -210,6 +227,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
     char *direction = browser->direction;
     char *stopid = browser->stopid;
     char *stopname = browser->stopname;
+    char *extra = browser->extra;
 
     char *selector = browser->menu_selectors[cell_index->row];
     char *new_msg = NULL;
@@ -230,14 +248,19 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
       stopid = selector;
       stopname = browser->menu_titles[cell_index->row];
     }
+    else if (strcmp(msg, MSG_FAVORITES) == 0)
+    {
+      new_msg = MSG_PREDICTIONS;
+      extra = selector;
+    }
 
     if (new_msg)
     {
-      printf("pushing menu with route: %s, direction: %s, stopid: %s, stopname: %s",
-        route, direction, stopid, stopname);
+      printf("pushing menu with route: %s, direction: %s, stopid: %s, stopname: %s: extra: %s",
+        route, direction, stopid, stopname, extra);
 
       s_browser_index++;
-      push_menu(new_msg, route, direction, stopid, stopname);
+      push_menu(new_msg, route, direction, stopid, stopname, extra);
     }
   }
   // otherwise check that we ARE on prediction screen and we're selecting the favorites button
@@ -357,10 +380,21 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       });
 
       menu_layer_set_click_config_onto_window(menu_layer, window);
+      printf("ADDING menu layer!");
       layer_add_child(window_layer, menu_layer_get_layer(menu_layer));
     }
     menu_layer_reload_data(browser->menu_layer);
+
+    layer_remove_from_parent(text_layer_get_layer(s_text_layer_loading));
   }
+
+  printf("window layer: %p, menu layer: %p, loading layer: %p",
+    window_layer, 
+    menu_layer_get_layer(browser->menu_layer), 
+    text_layer_get_layer(s_text_layer_loading));
+  printf("windows.. loading: %p, menu: %p", 
+    layer_get_window(text_layer_get_layer(s_text_layer_loading)),
+    layer_get_window(menu_layer_get_layer(browser->menu_layer)));
 
   if (done)
   {
@@ -454,7 +488,35 @@ static void initialize_browser(MenuBrowser *browser)
   browser->direction = NULL;
   browser->stopid = NULL;
   browser->stopname = NULL;
+  browser->extra = NULL;
   browser->isfavorite = false;
+}
+
+static void free_browser(MenuBrowser *browser)
+{
+  for (int i=0; i<browser->menu_num_entries; i++)
+  {
+    if (browser->menu_titles[i] != NULL)
+    {
+      free(browser->menu_titles[i]);
+    }
+
+    if (browser->menu_selectors[i] != NULL)
+    {
+      free(browser->menu_selectors[i]);
+    }
+
+    // subtitles are optional, so we need to check
+    if (browser->menu_subtitles[i])
+    {
+      free(browser->menu_subtitles[i]);
+    }
+  }
+  free(browser->menu_titles);
+  free(browser->menu_subtitles);
+  free(browser->menu_selectors);
+
+  browser->menu_num_entries = 0;
 }
 
 static void window_load(Window *window) {
@@ -504,29 +566,7 @@ static void window_unload(Window *window) {
     window_destroy(menu_window);
   }
 
-  for (int i=0; i<browser->menu_num_entries; i++)
-  {
-    if (browser->menu_titles[i] != NULL)
-    {
-      free(browser->menu_titles[i]);
-    }
-
-    if (browser->menu_selectors[i] != NULL)
-    {
-      free(browser->menu_selectors[i]);
-    }
-
-    // subtitles are optional, so we need to check
-    if (browser->menu_subtitles[i])
-    {
-      free(browser->menu_subtitles[i]);
-    }
-  }
-  free(browser->menu_titles);
-  free(browser->menu_subtitles);
-  free(browser->menu_selectors);
-
-  browser->menu_num_entries = 0;
+  free_browser(browser);
 
   free(browser->msg);
 
@@ -546,6 +586,10 @@ static void window_unload(Window *window) {
   {
     free(browser->stopname);
   }
+  if (browser->extra != NULL)
+  {
+    free(browser->extra);
+  }
 
   initialize_browser(browser); // set all to null
   free(browser);
@@ -564,6 +608,16 @@ static void window_unload(Window *window) {
       bool should_init = backBrowser->loading_state == LOADING_NOT_STARTED;
       send_menu_app_message(should_init);
     }
+    if (strcmp(backBrowser->msg, MSG_FAVORITES) == 0)
+    {
+      printf("returning to favorites menu!");
+      free_browser(backBrowser);
+
+      layer_add_child(window_get_root_layer(backBrowser->menu_window), 
+        text_layer_get_layer(s_text_layer_loading));
+      menu_layer_reload_data(backBrowser->menu_layer);
+      send_menu_app_message(true);
+    }
   }
   else
   {
@@ -581,7 +635,7 @@ static void window_unload(Window *window) {
   APP_LOG(APP_LOG_LEVEL_ERROR, "Unloaded");
 }
 
-void push_menu(char *msg, char *route, char *direction, char *stopid, char *stopname)
+void push_menu(char *msg, char *route, char *direction, char *stopid, char *stopname, char *extra)
 { 
   if (s_menu_browsers == NULL)
   {
@@ -638,6 +692,10 @@ void push_menu(char *msg, char *route, char *direction, char *stopid, char *stop
   if (stopname != NULL)
   {
     browser->stopname = strdup(stopname);
+  }
+  if (extra != NULL)
+  {
+    browser->extra = strdup(extra);
   }
   // send_menu_app_message(true);
 

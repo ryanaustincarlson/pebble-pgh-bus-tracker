@@ -62,13 +62,13 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   switch (cell_index->row) {
     // Favorites
     case 0:
-      // push_directions("P1");
+      push_menu("getfavorites", NULL, NULL, NULL, NULL, NULL);
       break;
     
     // Routes
     case 1:
       // push_routes();
-      push_menu("getroutes", NULL, NULL, NULL, NULL);
+      push_menu("getroutes", NULL, NULL, NULL, NULL, NULL);
       break;
   }
 }
