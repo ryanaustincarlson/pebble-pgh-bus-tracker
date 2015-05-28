@@ -2,9 +2,14 @@
 #include "menu_browser.h"
 #include "app_colors.h"
 // #include "str_split.h"
+
+#define NUM_MENU_ICONS 2
   
 static Window *s_main_window;
 static MenuLayer *s_menu_layer;
+
+static GBitmap *s_menu_icons[NUM_MENU_ICONS];
+static GBitmap *s_menu_icons_highlighted[NUM_MENU_ICONS];
 
 static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
   return 1;
@@ -45,14 +50,19 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
       // Use the row to specify which item we'll draw
       switch (cell_index->row) {
         case 0:
+        {
           // This is a basic menu item with a title and subtitle
-          menu_cell_basic_draw(ctx, cell_layer, "Favorites", NULL, NULL);
+          GBitmap *icon = menu_cell_layer_is_highlighted(cell_layer) ? s_menu_icons_highlighted[0] : s_menu_icons[0];
+          menu_cell_basic_draw(ctx, cell_layer, "Favorites", NULL, icon);
           break;
+        }
         case 1:
-          // This is a basic menu icon with a cycling icon
-          menu_cell_basic_draw(ctx, cell_layer, "Routes", NULL, NULL);
+        {
+          GBitmap *icon = menu_cell_layer_is_highlighted(cell_layer) ? s_menu_icons_highlighted[1] : s_menu_icons[1];
+          menu_cell_basic_draw(ctx, cell_layer, "Routes", NULL, icon);
           // menu_cell_basic_draw(ctx, cell_layer, "Icon Item", "Select to cycle", s_menu_icons[s_current_icon]);
           break;
+        }
       }
       break;
   }
@@ -104,6 +114,13 @@ static void main_window_load(Window *window) {
 
   layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
 
+  // s_menu_icons[0] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BUS);
+  s_menu_icons[0] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STAR);
+  s_menu_icons[1] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BUS);
+
+  s_menu_icons_highlighted[0] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STAR_HIGHLIGHTED);
+  s_menu_icons_highlighted[1] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BUS_HIGHLIGHTED);
+
   // Open AppMessage
   app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
 }
@@ -111,6 +128,11 @@ static void main_window_load(Window *window) {
 static void main_window_unload(Window *window) {
   // Destroy the menu layer
   menu_layer_destroy(s_menu_layer);
+
+  for (int i = 0; i < NUM_MENU_ICONS; i++) {
+    gbitmap_destroy(s_menu_icons[i]);
+    gbitmap_destroy(s_menu_icons_highlighted[i]);
+  }
 }
 
 static void init() {

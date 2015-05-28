@@ -54,7 +54,6 @@ void setup_text_layer_noresults(Window *window)
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_frame(window_layer);
 
-    // TODO: make this prettier!
     s_text_layer_noresults = text_layer_create(bounds);
     text_layer_set_font(s_text_layer_noresults, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
     text_layer_set_text_alignment(s_text_layer_noresults, GTextAlignmentCenter);
@@ -290,6 +289,11 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
 
+  if (browser->menu_num_entries == 0)
+  {
+    return;
+  }
+
   bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
   int section_index = cell_index->section;
   if ((on_prediction_screen && section_index == 1) || (!on_prediction_screen && section_index == 0))
@@ -469,6 +473,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     if (browser->menu_num_entries == 0)
     {
       setup_text_layer_noresults(window);
+      layer_remove_child_layers(window_layer);
       layer_add_child(window_layer, text_layer_get_layer(s_text_layer_noresults));
     }
   }
@@ -621,8 +626,6 @@ static void window_unload(Window *window) {
   }
   s_timer = NULL;
 
-  // int browser_index = s_browser_index--;
-
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
   MenuLayer *menu_layer = browser->menu_layer;
   Window *menu_window = browser->menu_window;
@@ -688,7 +691,6 @@ static void window_unload(Window *window) {
 
       layer_add_child(window_get_root_layer(backBrowser->menu_window), 
         text_layer_get_layer(s_text_layer_loading));
-      menu_layer_reload_data(backBrowser->menu_layer);
       send_menu_app_message(true);
     }
   }

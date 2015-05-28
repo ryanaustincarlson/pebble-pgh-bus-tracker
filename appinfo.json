@@ -16,7 +16,28 @@
     "longName": "PGH Bus Tracker",
     "projectType": "native",
     "resources": {
-        "media": []
+        "media": [
+            {
+              "type": "png",
+              "name": "IMAGE_BUS",
+              "file": "bus.png"
+            },
+            {
+              "type": "png",
+              "name": "IMAGE_BUS_HIGHLIGHTED",
+              "file": "bus-highlighted-white.png"
+            },
+            {
+              "type": "png",
+              "name": "IMAGE_STAR",
+              "file": "star.png"
+            },
+            {
+              "type": "png",
+              "name": "IMAGE_STAR_HIGHLIGHTED",
+              "file": "star-highlighted-white.png"
+            }
+        ]
     },
     "sdkVersion": "3",
     "shortName": "PGH Bus Tracker",

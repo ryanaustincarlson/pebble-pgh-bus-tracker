@@ -671,3 +671,6 @@ Pebble.addEventListener('appmessage',
         direction, stopid, stopname, isfavorite);
     }
   });
+
+// use to initialize favorites if we want
+// PersistentFavoritesManager.setFavorite('P1', 'INBOUND', '8161', 'East Liberty Station Stop C', true)
