@@ -6,8 +6,12 @@
 #include "str_utils.h"
 
 /*
- * STATIC VARS
+ * CONSTANTS / STATIC VARS
  */
+
+ #define HORIZ_SCROLL_WAIT_TIME 200 // ms
+ #define HORIZ_SCROLL_ITEM_TIME 150 // ms
+ #define HORIZ_SCROLL_VISIBLE_CHARS 15
 
  enum LOADING_STATE {LOADING_NOT_STARTED=0, LOADING_STARTED=1, LOADING_DONE=2};
 
@@ -31,6 +35,8 @@
   bool isfavorite; // only applies to a (route,direction,stopid) tuple
 } MenuBrowser;
 
+static void selected_index_monitor(void *data);
+
 // contains info for routes, direction, stops, predictions
 static MenuBrowser **s_menu_browsers = NULL;
 static int s_browser_index;
@@ -42,6 +48,28 @@ static TextLayer *s_text_layer_noresults = NULL;
 static AppTimer *s_timer = NULL; // timer that calls a fcn to send the first app msg
 static bool s_timer_fired = false; // true if the timer has already fired
 static int s_timer_browser_index = -1; // the browser index that we expect when the timer fires
+
+static AppTimer *s_horiz_scroll_timer = NULL;
+static bool s_horiz_scroll_timer_active = false; // true if timer has been scheduled
+static unsigned long s_horiz_scroll_timer_timestamp = 0; // in milliseconds
+static int s_horiz_scroll_offset = 0;
+static bool s_horiz_scroll_scrolling_still_required = true;
+static int s_horiz_scroll_menu_index = -1;
+// static bool s_horiz_scroll_menu_reloading_to_scroll = false;
+
+static int s_menu_selection_index = -1; // our currently selected item (row only for now)
+
+/*
+ * Utilty Functions
+ */ 
+unsigned long get_timestamp()
+{
+  time_t seconds;
+  uint16_t millis;
+  time_ms(&seconds, &millis);
+  unsigned long timestamp = seconds * 1000 + millis;
+  return timestamp;
+}
 
 /*
  * Text Layers
@@ -189,14 +217,16 @@ void send_menu_app_message_helper(void *should_init_ptr)
  * MENU
  */
 
-static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
+static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) 
+{
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
   if (strcmp(browser->msg, MSG_PREDICTIONS) == 0)
     return 2;
   return 1;
 }
 
-static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) 
+{
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
   int num_entries = browser->menu_num_entries;
 
@@ -218,11 +248,13 @@ static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t secti
   return 0;
 }
 
-static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) 
+{
   return MENU_CELL_BASIC_HEADER_HEIGHT;
 }
 
-static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
+static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) 
+{
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
   char *msg = browser->msg;
   
@@ -255,10 +287,44 @@ static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, ui
   }
 }
 
-static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+static char *get_menu_item_text(MenuLayer *menu_layer, int index, char *text)
+{
+  char *modified = text;
+
+  MenuIndex menu_index = menu_layer_get_selected_index(menu_layer);
+  if (modified && menu_index.row == index)
+  {
+    int len = strlen(modified);
+
+    // if (len - HORIZ_SCROLL_VISIBLE_CHARS - s_horiz_scroll_offset > 0)
+    bool is_text_too_long = len - HORIZ_SCROLL_VISIBLE_CHARS > 0;
+
+    int offset_strlen = len - s_horiz_scroll_offset;
+    bool keep_scrolling = offset_strlen >= 0;
+    if (is_text_too_long && keep_scrolling)
+    {
+      if (offset_strlen == 0)
+      {
+        modified = "";
+        s_horiz_scroll_scrolling_still_required = true;
+      }
+      else if (offset_strlen == -1)
+      {
+        modified = text;
+      }
+      else
+      {
+        modified += s_horiz_scroll_offset;
+        s_horiz_scroll_scrolling_still_required = true;
+      }
+    }
+  }
+  return modified;
+}
+
+static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) 
+{
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
-  char *title = browser->menu_titles[cell_index->row];
-  char *subtitle = browser->menu_subtitles[cell_index->row];
 
   char *favorite_msg = NULL;
   if (!browser->isfavorite)
@@ -282,17 +348,182 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 
   if (cell_index->section == content_section_index)
   {
-    menu_cell_basic_draw(ctx, cell_layer, title, subtitle, NULL);
+    char *title = browser->menu_titles[cell_index->row];
+    char *subtitle = browser->menu_subtitles[cell_index->row];
+
+    char *newtitle = get_menu_item_text(browser->menu_layer, cell_index->row, title);
+
+    menu_cell_basic_draw(ctx, cell_layer, newtitle, subtitle, NULL);
+    // free(newtitle);
   }
 }
 
-static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+static void horiz_scroll_callback(void *data)
+{
+  s_horiz_scroll_timer = NULL;
+  s_horiz_scroll_offset++;
+
+  MenuBrowser *browser = s_menu_browsers[s_browser_index];
+  MenuLayer *menu_layer = browser->menu_layer;
+  MenuIndex menu_index = menu_layer_get_selected_index(menu_layer);
+
+  if (!s_horiz_scroll_scrolling_still_required || s_menu_selection_index != menu_index.row)
+  {
+    s_horiz_scroll_offset = 0;
+    // s_horiz_scroll_timer_active = false;
+    s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL);
+    return;
+  }
+
+  // TODO: check that the callback fired at the same index as current browser!
+
+  char *title = browser->menu_titles[menu_index.row];
+
+  printf("horiz scroll..: %s", title+s_horiz_scroll_offset);
+
+  // TODO: need to distinguish between sections for Predictions screen
+
+  // because in row==0, menu_selection_changed doesn't get called
+  // if (menu_index.row != 0)
+  // {
+  //   s_horiz_scroll_menu_reloading_to_scroll = true;
+  // }
+  s_horiz_scroll_scrolling_still_required = false;
+  // menu_layer_reload_data(menu_layer);
+  layer_mark_dirty(menu_layer_get_layer(menu_layer));
+  s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_ITEM_TIME, horiz_scroll_callback, NULL);
+  s_horiz_scroll_timer_active = true;
+}
+
+// static void initiate_horiz_scroll_timer(char *msg)
+// {
+//   // printf("initiate_horiz_scroll_timer (from %s)", msg);
+//   bool need_to_create_timer = true;
+
+//   s_horiz_scroll_scrolling_still_required = true;
+//   s_horiz_scroll_offset = 0;
+//   // s_horiz_scroll_menu_reloading_to_scroll = false;
+
+//   if (s_horiz_scroll_timer)
+//   {
+//     need_to_create_timer = !app_timer_reschedule(s_horiz_scroll_timer, HORIZ_SCROLL_WAIT_TIME);
+//   }
+//   if (need_to_create_timer)
+//   {
+//     s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, horiz_scroll_callback, NULL);
+//   }
+//   s_horiz_scroll_timer_active = true;
+// }
+
+static void selected_index_monitor(void *data)
+{
+  // printf("monitor called");
+  MenuBrowser *browser = s_menu_browsers[s_browser_index];
+  MenuIndex menu_index = menu_layer_get_selected_index(browser->menu_layer);
+
+  unsigned long timestamp = get_timestamp();
+  int difference = timestamp - s_horiz_scroll_timer_timestamp;
+  // printf("difference: %d, old: %lu, new: %lu", difference, s_horiz_scroll_timer_timestamp, timestamp);
+
+  if (s_horiz_scroll_timer_timestamp == 0)
+  {
+    s_horiz_scroll_timer_timestamp = timestamp;
+  }
+  else if (s_menu_selection_index != menu_index.row)
+  {
+    // printf("resetting timestamp");
+    s_horiz_scroll_timer_timestamp = timestamp;
+  }
+
+  if (s_menu_selection_index == menu_index.row && 
+    s_horiz_scroll_menu_index != menu_index.row &&
+    difference >= 1000)
+  {
+    // printf("starting horizontal scrolling");
+
+    s_horiz_scroll_scrolling_still_required = true;
+    s_horiz_scroll_timer_timestamp = timestamp;
+    s_horiz_scroll_offset = 0;
+    s_horiz_scroll_menu_index = menu_index.row;
+
+    horiz_scroll_callback(NULL);
+  }
+  else
+  {
+    // printf("continuing to wait");
+    // bool need_to_create_timer = true;
+    s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL);
+    // if (s_horiz_scroll_timer)
+    // {
+    //   need_to_create_timer = !app_timer_reschedule(s_horiz_scroll_timer, HORIZ_SCROLL_WAIT_TIME);
+    // }
+    // if (need_to_create_timer)
+    // {
+      
+    // }
+  }
+
+  s_menu_selection_index = menu_index.row;
+}
+
+static void menu_selection_changed_callback(MenuLayer *menu_layer, MenuIndex new_index, MenuIndex old_index, void *data)
+{
+  return;
+  // printf("selection changed %d -> %d (current = %d)", old_index.row, new_index.row, s_menu_selection_index);
+  MenuBrowser *browser = s_menu_browsers[s_browser_index];
+
+  if (s_menu_selection_index == new_index.row)
+  {
+    // s_horiz_scroll_menu_reloading_to_scroll = true;
+    return;
+  }
+  s_menu_selection_index = new_index.row;
+  // s_horiz_scroll_offset = 0;
+
+  // printf("updated current = %d, reloading to scroll? %s, timer active? %s", 
+  //   s_menu_selection_index, 
+  //   "NA",
+  //   // s_horiz_scroll_menu_reloading_to_scroll ? "YES" : "NO",
+  //   s_horiz_scroll_timer_active ? "YES" : "NO");
+
+  // initiate_horiz_scroll_timer("menu_selection_changed_callback");
+
+  /*
+  if (s_horiz_scroll_menu_reloading_to_scroll)
+  {
+    s_horiz_scroll_menu_reloading_to_scroll = false;
+  }
+  else
+  {
+    initiate_horiz_scroll_timer("menu_selection_changed_callback");
+  }*/
+}
+
+static void menu_select_long_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) 
+{
+  printf("long click!");
+  // initiate_horiz_scroll_timer();
+}
+
+static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) 
+{
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
 
   if (browser->menu_num_entries == 0)
   {
     return;
   }
+
+  // if (s_horiz_scroll_timer_active)
+  // {
+  //   app_timer_cancel(s_horiz_scroll_timer);
+  //   s_horiz_scroll_timer_active = false;
+  // }
+  s_horiz_scroll_offset = 0;
+  s_horiz_scroll_menu_index = -1;
+  s_menu_selection_index = -1;
+  menu_layer_reload_data(browser->menu_layer);
+  s_horiz_scroll_scrolling_still_required = false;
 
   bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
   int section_index = cell_index->section;
@@ -453,6 +684,8 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         .draw_header = menu_draw_header_callback,
         .draw_row = menu_draw_row_callback,
         .select_click = menu_select_callback,
+        .select_long_click = menu_select_long_callback,
+        .selection_changed = menu_selection_changed_callback
       });
 
       menu_layer_set_click_config_onto_window(menu_layer, window);
@@ -463,6 +696,11 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       
       layer_add_child(window_layer, menu_layer_get_layer(menu_layer));
     }
+    // printf("scroll timer active? %s", s_horiz_scroll_timer_active ? "YES" : "NO");
+    // if (s_horiz_scroll_timer_active)
+    // {
+    //   s_horiz_scroll_menu_reloading_to_scroll = true;
+    // }
     menu_layer_reload_data(browser->menu_layer);
 
     layer_remove_from_parent(text_layer_get_layer(s_text_layer_loading));
@@ -470,6 +708,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 
   if (done)
   {
+    printf("Done loading messages!");
     if (browser->menu_num_entries == 0)
     {
       setup_text_layer_noresults(window);
@@ -501,11 +740,6 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 
     if (item_index != -1 && browser != NULL)
     {
-      if (item_index+1 > browser->menu_num_entries)
-      {
-        browser->menu_num_entries = item_index+1;
-      }
-
       browser->menu_titles[item_index] = strdup(title);
       browser->menu_selectors[item_index] = strdup(selector);
 
@@ -514,11 +748,23 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         browser->menu_subtitles[item_index] = strdup(subtitle);
       }
 
-      printf("idx: %d, title: %s, subt: %s, sel: %s", 
-        item_index, 
-        browser->menu_titles[item_index], 
-        browser->menu_subtitles[item_index], 
-        browser->menu_selectors[item_index]);
+      if (item_index+1 > browser->menu_num_entries)
+      {
+        browser->menu_num_entries = item_index+1;
+      }
+      if (item_index == 0 && s_browser_index == 0)
+      {
+        s_horiz_scroll_timer_active = true;
+        s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL);
+        // printf("calling initiate_horiz_scroll_timer");
+        // initiate_horiz_scroll_timer("inbox_received_callback");
+      }
+
+      // printf("idx: %d, title: %s, subt: %s, sel: %s", 
+      //   item_index, 
+      //   browser->menu_titles[item_index], 
+      //   browser->menu_subtitles[item_index], 
+      //   browser->menu_selectors[item_index]);
     }
 
     if (onscreen_browser == browser)
@@ -528,15 +774,18 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   }
 }
 
- static void inbox_dropped_callback(AppMessageResult reason, void *context) {
+static void inbox_dropped_callback(AppMessageResult reason, void *context) 
+{
   APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
 }
 
-static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context) {
+static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context) 
+{
   APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed!");
 }
 
-static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
+static void outbox_sent_callback(DictionaryIterator *iterator, void *context) 
+{
   // APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
 }
 
@@ -606,7 +855,8 @@ static void free_browser_lists(MenuBrowser *browser)
   browser->menu_num_entries = 0;
 }
 
-static void window_load(Window *window) {
+static void window_load(Window *window) 
+{
   #ifdef PBL_COLOR
     window_colorize(window);
   #endif
@@ -616,7 +866,8 @@ static void window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_text_layer_loading));
 }
 
-static void window_unload(Window *window) {
+static void window_unload(Window *window) 
+{
   // kill the timer so that we don't accidentally start sending
   // messages on a already-popped menu
   if (!s_timer_fired && s_timer != NULL)
@@ -625,6 +876,8 @@ static void window_unload(Window *window) {
     s_timer_fired = false;
   }
   s_timer = NULL;
+
+  
 
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
   MenuLayer *menu_layer = browser->menu_layer;
@@ -696,6 +949,13 @@ static void window_unload(Window *window) {
   }
   else
   {
+    if (s_horiz_scroll_timer_active && s_horiz_scroll_timer != NULL)
+    {
+      app_timer_cancel(s_horiz_scroll_timer);
+      s_horiz_scroll_timer_active = false;
+    }
+    s_horiz_scroll_timer = NULL;
+
     free(s_menu_browsers);
     s_menu_browsers = NULL;
 

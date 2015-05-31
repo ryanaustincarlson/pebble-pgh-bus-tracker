@@ -47,11 +47,11 @@ var sendMenuSetupMessage = function(num_entries, msgType)
 var sendMenuEntryMessage = function(title, subtitle, selector, index, msgType)
 {
   
-  console.log('sending for ' + msgType + 
-              '... title: ' + title + 
-              ', subtitle: ' + subtitle + 
-              ', selector: ' + selector +
-              ', idx: ' + index);
+  // console.log('sending for ' + msgType + 
+  //             '... title: ' + title + 
+  //             ', subtitle: ' + subtitle + 
+  //             ', selector: ' + selector +
+  //             ', idx: ' + index);
 
   var dictionary = {
     "KEY_ITEM_INDEX" : index,
