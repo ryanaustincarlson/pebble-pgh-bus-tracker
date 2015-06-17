@@ -1,4 +1,5 @@
 var OFFLINE_MODE = false;
+var DISPLAY_FEWER_ROUTES = true;
 
 var URLUtils = {
   constructURL : function(requestType, data)
@@ -47,11 +48,11 @@ var sendMenuSetupMessage = function(num_entries, msgType)
 var sendMenuEntryMessage = function(title, subtitle, selector, index, msgType)
 {
   
-  // console.log('sending for ' + msgType + 
-  //             '... title: ' + title + 
-  //             ', subtitle: ' + subtitle + 
-  //             ', selector: ' + selector +
-  //             ', idx: ' + index);
+  console.log('sending for ' + msgType + 
+              '... title: ' + title + 
+              ', subtitle: ' + subtitle + 
+              ', selector: ' + selector +
+              ', idx: ' + index);
 
   var dictionary = {
     "KEY_ITEM_INDEX" : index,
@@ -103,7 +104,9 @@ var Dispatcher = {
     savedData.index = index+1;
     savedDataContainer.savedData = savedData;
 
-    if (!nextTitle) 
+    var cutoff_early = DISPLAY_FEWER_ROUTES && index > 5;
+
+    if (!nextTitle || cutoff_early) 
     {
       nextTitle = "done";
       nextSubtitle = "done";
@@ -167,7 +170,9 @@ var Dispatcher = {
           index : 0
         };
 
-        sendMenuSetupMessage(titles.length, displayRequestType);
+        var titlesLength = DISPLAY_FEWER_ROUTES ? 6 : titles.length;
+
+        sendMenuSetupMessage(titlesLength, displayRequestType);
       }
     });
   }
@@ -612,16 +617,17 @@ var PersistentFavoritesManager = {
 Pebble.addEventListener('appmessage',
   function(e) {
     var payload = e.payload
-    // console.log("AppMessage received!");
-    var requestType = payload['0'];
-    // console.log('request type: ' + requestType);
+    console.log("AppMessage received!");
+    var requestType = payload['100'];
+    console.log('request type: ' + requestType);
+    console.log('payload: ' + JSON.stringify(payload));
 
-    var route = payload['1'];
-    var direction = payload['2'];
-    var stopid = payload['3'];
-    var stopname = payload['4'];
-    var extra = payload['5'];
-    var should_init = payload['6'] == 1;
+    var route = payload['101'];
+    var direction = payload['102'];
+    var stopid = payload['103'];
+    var stopname = payload['104'];
+    var extra = payload['105'];
+    var should_init = payload['106'] == 1;
 
     if (requestType == 'getroutes')
     {
@@ -655,7 +661,7 @@ Pebble.addEventListener('appmessage',
     }
     else if (requestType == 'setfavorite')
     {
-      var isfavorite = e.payload['6'] == 1;
+      var isfavorite = e.payload['106'] == 1;
 
       // we need to extra the data first
       if (extra != null)

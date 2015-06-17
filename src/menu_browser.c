@@ -149,23 +149,23 @@ void setup_app_message_dictionary(DictionaryIterator *iter, MenuBrowser *browser
 {
   if (browser->route != NULL)
   {
-    dict_write_cstring(iter, 1, browser->route);
+    dict_write_cstring(iter, 101, browser->route);
   }
   if (browser->direction != NULL)
   {
-    dict_write_cstring(iter, 2, browser->direction);
+    dict_write_cstring(iter, 102, browser->direction);
   }
   if (browser->stopid != NULL)
   {
-    dict_write_cstring(iter, 3, browser->stopid);
+    dict_write_cstring(iter, 103, browser->stopid);
   }
   if (browser->stopname != NULL)
   {
-    dict_write_cstring(iter, 4, browser->stopname);
+    dict_write_cstring(iter, 104, browser->stopname);
   }
   if (browser->extra != NULL)
   {
-    dict_write_cstring(iter, 5, browser->extra);
+    dict_write_cstring(iter, 105, browser->extra);
   }
 }
 
@@ -176,10 +176,10 @@ void send_set_favorites_app_message()
   DictionaryIterator *iter;
   app_message_outbox_begin(&iter);
 
-  dict_write_cstring(iter, 0, "setfavorite");
+  dict_write_cstring(iter, 100, "setfavorite");
   setup_app_message_dictionary(iter, browser);
 
-  dict_write_int8(iter, 6, browser->isfavorite ? 1 : 0);
+  dict_write_int8(iter, 106, browser->isfavorite ? 1 : 0);
 
   app_message_outbox_send();
 }
@@ -191,26 +191,31 @@ void send_menu_app_message(bool should_init)
   DictionaryIterator *iter;
   app_message_outbox_begin(&iter);
 
-  dict_write_cstring(iter, 0, browser->msg);
+  dict_write_cstring(iter, 100, browser->msg);
   setup_app_message_dictionary(iter, browser);
 
-  dict_write_int8(iter, 6, should_init ? 1 : 0);
+  dict_write_int8(iter, 106, should_init ? 1 : 0);
 
   // Send the message!
   app_message_outbox_send();
-  // printf("sent %s message", msg);
+  printf("sent %s message", browser->msg);
 }
 
 void send_menu_app_message_helper(void *should_init_ptr)
 {
   s_timer_fired = true;
-  if (s_timer_browser_index == s_browser_index)
+  printf("in menu app msg helper");
+  printf("browser index...");
+  // printf("%d", s_browser_index);
+  // if (s_timer_browser_index == s_browser_index)
+  if (s_browser_index == 0)
   {
     printf("timer browser idx: %d, browser_index: %d", s_timer_browser_index, s_browser_index);
     bool should_init = (bool)should_init_ptr;
     printf("sending menu app msg");
     send_menu_app_message(should_init);
   }
+  printf("ahhhh");
 }
 
 /*
@@ -507,6 +512,8 @@ static void menu_select_long_callback(MenuLayer *menu_layer, MenuIndex *cell_ind
 
 static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) 
 {
+  printf("menu select");
+  printf("browser index: %d", s_browser_index);
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
 
   if (browser->menu_num_entries == 0)
@@ -529,6 +536,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   int section_index = cell_index->section;
   if ((on_prediction_screen && section_index == 1) || (!on_prediction_screen && section_index == 0))
   {
+    printf("inside if");
     char *msg = browser->msg;
     char *route = browser->route;
     char *direction = browser->direction;
@@ -538,6 +546,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
 
     char *selector = browser->menu_selectors[cell_index->row];
     char *new_msg = NULL;
+    printf("starting strcmps w/ msg: %s", msg);
 
     if (strcmp(msg, MSG_ROUTES) == 0)
     {
@@ -560,14 +569,25 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
       new_msg = MSG_PREDICTIONS;
       extra = selector;
     }
+    printf("lots'o stuff, new_msg: %s, route: %s", new_msg, route);
 
     if (new_msg)
     {
-      printf("pushing menu with route: %s, direction: %s, stopid: %s, stopname: %s: extra: %s",
-        route, direction, stopid, stopname, extra);
+      printf("msg: %s, route: %s, direction: %s, stopid: %s, stopname: %s: extra: %s",
+        msg ? msg : "NULL",
+        route ? route : "NULL", 
+        direction ? route : "NULL", 
+        stopid ? stopid : "NULL", 
+        stopname ? stopname : "NULL", 
+        extra ? extra : "NULL");
 
-      s_browser_index++;
-      push_menu(new_msg, route, direction, stopid, stopname, extra);
+      printf("browser index: %d", s_browser_index);
+      s_browser_index++; // FIXME: THIS LINE IS THE PROBLEM... solution might be...
+                         // using structs and incrementing within the struct?
+                         // or somehow passing all this around as a void* to the various pieces, which seems gross.
+
+
+      // push_menu(new_msg, route, direction, stopid, stopname, extra);
     }
   }
   // otherwise check that we ARE on prediction screen and we're selecting the favorites button
@@ -972,6 +992,7 @@ static void window_unload(Window *window)
 
 void push_menu(char *msg, char *route, char *direction, char *stopid, char *stopname, char *extra)
 { 
+  printf("menu push");
   if (s_menu_browsers == NULL)
   {
     printf("first push menu !");
@@ -1034,9 +1055,13 @@ void push_menu(char *msg, char *route, char *direction, char *stopid, char *stop
   }
   // send_menu_app_message(true);
 
-  s_timer_browser_index = s_browser_index;
-  s_timer = app_timer_register(
-    500, 
-    send_menu_app_message_helper, 
-    (void *)true);
+  printf("launching helper on timer");
+  printf("browser index...");
+  printf("%d", s_browser_index);
+  send_menu_app_message(true); // FIXME
+  // s_timer_browser_index = s_browser_index;
+  // s_timer = app_timer_register(
+  //   500, 
+  //   send_menu_app_message_helper, 
+  //   (void *)true);
 }
