@@ -1,5 +1,5 @@
 var OFFLINE_MODE = false;
-var DISPLAY_FEWER_ROUTES = true;
+var DISPLAY_FEWER_ROUTES = false;
 
 var URLUtils = {
   constructURL : function(requestType, data)

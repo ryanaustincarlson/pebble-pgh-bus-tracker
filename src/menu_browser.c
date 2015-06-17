@@ -206,9 +206,8 @@ void send_menu_app_message_helper(void *should_init_ptr)
   s_timer_fired = true;
   printf("in menu app msg helper");
   printf("browser index...");
-  // printf("%d", s_browser_index);
-  // if (s_timer_browser_index == s_browser_index)
-  if (s_browser_index == 0)
+  printf("%d", s_browser_index);
+  if (s_timer_browser_index == s_browser_index)
   {
     printf("timer browser idx: %d, browser_index: %d", s_timer_browser_index, s_browser_index);
     bool should_init = (bool)should_init_ptr;
@@ -376,7 +375,7 @@ static void horiz_scroll_callback(void *data)
   {
     s_horiz_scroll_offset = 0;
     // s_horiz_scroll_timer_active = false;
-    s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL);
+    // s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL); // FIXME
     return;
   }
 
@@ -396,7 +395,7 @@ static void horiz_scroll_callback(void *data)
   s_horiz_scroll_scrolling_still_required = false;
   // menu_layer_reload_data(menu_layer);
   layer_mark_dirty(menu_layer_get_layer(menu_layer));
-  s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_ITEM_TIME, horiz_scroll_callback, NULL);
+  // s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_ITEM_TIME, horiz_scroll_callback, NULL); // FIXME
   s_horiz_scroll_timer_active = true;
 }
 
@@ -457,7 +456,9 @@ static void selected_index_monitor(void *data)
   {
     // printf("continuing to wait");
     // bool need_to_create_timer = true;
-    s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL);
+
+    // s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL); // FIXME
+
     // if (s_horiz_scroll_timer)
     // {
     //   need_to_create_timer = !app_timer_reschedule(s_horiz_scroll_timer, HORIZ_SCROLL_WAIT_TIME);
@@ -569,7 +570,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
       new_msg = MSG_PREDICTIONS;
       extra = selector;
     }
-    printf("lots'o stuff, new_msg: %s, route: %s", new_msg, route);
+    printf("lots'o stuff, new_msg: %s, route: %s", new_msg ? new_msg : "NULL", route ? route : "NULL");
 
     if (new_msg)
     {
@@ -581,13 +582,12 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
         stopname ? stopname : "NULL", 
         extra ? extra : "NULL");
 
-      printf("browser index: %d", s_browser_index);
-      s_browser_index++; // FIXME: THIS LINE IS THE PROBLEM... solution might be...
+      printf("browser index before: %d", s_browser_index);
+      // s_browser_index++; // FIXME: THIS LINE IS THE PROBLEM... solution might be...
                          // using structs and incrementing within the struct?
                          // or somehow passing all this around as a void* to the various pieces, which seems gross.
-
-
-      // push_menu(new_msg, route, direction, stopid, stopname, extra);
+      printf("browser index after: %d", s_browser_index);
+      push_menu(new_msg, route, direction, stopid, stopname, extra);
     }
   }
   // otherwise check that we ARE on prediction screen and we're selecting the favorites button
@@ -775,7 +775,9 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       if (item_index == 0 && s_browser_index == 0)
       {
         s_horiz_scroll_timer_active = true;
-        s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL);
+
+        // s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL); // FIXME
+
         // printf("calling initiate_horiz_scroll_timer");
         // initiate_horiz_scroll_timer("inbox_received_callback");
       }
@@ -1005,6 +1007,10 @@ void push_menu(char *msg, char *route, char *direction, char *stopid, char *stop
     app_message_register_outbox_failed(outbox_failed_callback);
     app_message_register_outbox_sent(outbox_sent_callback);
   }
+  else
+  {
+    s_browser_index++;
+  }
 
   MenuBrowser *browser = calloc(1, sizeof(MenuBrowser)); // s_menu_browsers[s_browser_index];
   initialize_browser(browser);
@@ -1058,6 +1064,7 @@ void push_menu(char *msg, char *route, char *direction, char *stopid, char *stop
   printf("launching helper on timer");
   printf("browser index...");
   printf("%d", s_browser_index);
+  // if (s_browser_index == 0)
   send_menu_app_message(true); // FIXME
   // s_timer_browser_index = s_browser_index;
   // s_timer = app_timer_register(
