@@ -9,7 +9,7 @@
  * CONSTANTS / STATIC VARS
  */
 
- #define HORIZ_SCROLL_WAIT_TIME 200 // ms
+ #define HORIZ_SCROLL_WAIT_TIME 750 // ms
  #define HORIZ_SCROLL_ITEM_TIME 150 // ms
  #define HORIZ_SCROLL_VISIBLE_CHARS 15
 
@@ -198,7 +198,7 @@ void send_menu_app_message(bool should_init)
 
   // Send the message!
   app_message_outbox_send();
-  printf("sent %s message", browser->msg);
+  // printf("sent %s message", browser->msg);
 }
 
 void send_menu_app_message_helper(void *should_init_ptr)
@@ -364,87 +364,88 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 
 static void horiz_scroll_callback(void *data)
 {
+  // printf("in horiz scroll callback");
   s_horiz_scroll_timer = NULL;
   s_horiz_scroll_offset++;
 
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
-  MenuLayer *menu_layer = browser->menu_layer;
-  MenuIndex menu_index = menu_layer_get_selected_index(menu_layer);
+  MenuLayer *menu_layer = NULL;
+  MenuIndex menu_index;
 
-  if (!s_horiz_scroll_scrolling_still_required || s_menu_selection_index != menu_index.row)
+  bool should_scroll = false;
+  if (browser != NULL && browser->menu_layer != NULL)
+  {
+    // menu is initialized so let's check if we should scroll
+    menu_layer = browser->menu_layer;
+    menu_index = menu_layer_get_selected_index(menu_layer);
+
+    should_scroll = s_horiz_scroll_scrolling_still_required && s_menu_selection_index == menu_index.row;
+  }
+
+  if (should_scroll)
+  {
+    // printf("scroll_callback ~> legit browser && menu layer!");
+
+    // TODO: check that the callback fired at the same index as current browser!
+
+    char *title = browser->menu_titles[menu_index.row];
+
+    printf("horiz scroll..: %s", title+s_horiz_scroll_offset);
+
+    // TODO: need to distinguish between sections for Predictions screen
+
+    // because in row==0, menu_selection_changed doesn't get called
+    // if (menu_index.row != 0)
+    // {
+    //   s_horiz_scroll_menu_reloading_to_scroll = true;
+    // }
+    s_horiz_scroll_scrolling_still_required = false;
+    // menu_layer_reload_data(menu_layer);
+    layer_mark_dirty(menu_layer_get_layer(menu_layer));
+    s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_ITEM_TIME, horiz_scroll_callback, NULL); // FIXME
+    s_horiz_scroll_timer_active = true;
+  }
+  else
   {
     s_horiz_scroll_offset = 0;
     // s_horiz_scroll_timer_active = false;
-    // s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL); // FIXME
-    return;
+    s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL); // FIXME
   }
-
-  // TODO: check that the callback fired at the same index as current browser!
-
-  char *title = browser->menu_titles[menu_index.row];
-
-  printf("horiz scroll..: %s", title+s_horiz_scroll_offset);
-
-  // TODO: need to distinguish between sections for Predictions screen
-
-  // because in row==0, menu_selection_changed doesn't get called
-  // if (menu_index.row != 0)
-  // {
-  //   s_horiz_scroll_menu_reloading_to_scroll = true;
-  // }
-  s_horiz_scroll_scrolling_still_required = false;
-  // menu_layer_reload_data(menu_layer);
-  layer_mark_dirty(menu_layer_get_layer(menu_layer));
-  // s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_ITEM_TIME, horiz_scroll_callback, NULL); // FIXME
-  s_horiz_scroll_timer_active = true;
 }
-
-// static void initiate_horiz_scroll_timer(char *msg)
-// {
-//   // printf("initiate_horiz_scroll_timer (from %s)", msg);
-//   bool need_to_create_timer = true;
-
-//   s_horiz_scroll_scrolling_still_required = true;
-//   s_horiz_scroll_offset = 0;
-//   // s_horiz_scroll_menu_reloading_to_scroll = false;
-
-//   if (s_horiz_scroll_timer)
-//   {
-//     need_to_create_timer = !app_timer_reschedule(s_horiz_scroll_timer, HORIZ_SCROLL_WAIT_TIME);
-//   }
-//   if (need_to_create_timer)
-//   {
-//     s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, horiz_scroll_callback, NULL);
-//   }
-//   s_horiz_scroll_timer_active = true;
-// }
 
 static void selected_index_monitor(void *data)
 {
-  // printf("monitor called");
-  MenuBrowser *browser = s_menu_browsers[s_browser_index];
-  MenuIndex menu_index = menu_layer_get_selected_index(browser->menu_layer);
+  printf("monitor called");
 
   unsigned long timestamp = get_timestamp();
   int difference = timestamp - s_horiz_scroll_timer_timestamp;
   // printf("difference: %d, old: %lu, new: %lu", difference, s_horiz_scroll_timer_timestamp, timestamp);
 
-  if (s_horiz_scroll_timer_timestamp == 0)
-  {
-    s_horiz_scroll_timer_timestamp = timestamp;
-  }
-  else if (s_menu_selection_index != menu_index.row)
-  {
-    // printf("resetting timestamp");
-    s_horiz_scroll_timer_timestamp = timestamp;
-  }
+  MenuBrowser *browser = s_menu_browsers[s_browser_index];
+  MenuIndex menu_index;
 
-  if (s_menu_selection_index == menu_index.row && 
-    s_horiz_scroll_menu_index != menu_index.row &&
-    difference >= 1000)
+  bool should_scroll = false;
+  if (browser != NULL && browser->menu_layer != NULL)
   {
-    // printf("starting horizontal scrolling");
+    // printf("legit browser & menu layer!");
+    menu_index = menu_layer_get_selected_index(browser->menu_layer);
+    s_menu_selection_index = menu_index.row;
 
+    if (s_horiz_scroll_timer_timestamp == 0)
+    {
+      s_horiz_scroll_timer_timestamp = timestamp;
+    }
+    else if (s_menu_selection_index != menu_index.row)
+    {
+      s_horiz_scroll_timer_timestamp = timestamp;
+    }
+
+    should_scroll = s_menu_selection_index == menu_index.row && s_horiz_scroll_menu_index != menu_index.row && difference >= HORIZ_SCROLL_WAIT_TIME;
+  }
+  
+  if (should_scroll)
+  {
+    // start scrolling
     s_horiz_scroll_scrolling_still_required = true;
     s_horiz_scroll_timer_timestamp = timestamp;
     s_horiz_scroll_offset = 0;
@@ -454,27 +455,17 @@ static void selected_index_monitor(void *data)
   }
   else
   {
-    // printf("continuing to wait");
-    // bool need_to_create_timer = true;
-
-    // s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL); // FIXME
-
-    // if (s_horiz_scroll_timer)
-    // {
-    //   need_to_create_timer = !app_timer_reschedule(s_horiz_scroll_timer, HORIZ_SCROLL_WAIT_TIME);
-    // }
-    // if (need_to_create_timer)
-    // {
-      
-    // }
+    // otherwise, keep checking the selected index
+    s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL); // FIXME
   }
-
-  s_menu_selection_index = menu_index.row;
 }
 
 static void menu_selection_changed_callback(MenuLayer *menu_layer, MenuIndex new_index, MenuIndex old_index, void *data)
 {
+  s_horiz_scroll_offset = 0;
+  s_horiz_scroll_timer_timestamp = get_timestamp();
   return;
+
   // printf("selection changed %d -> %d (current = %d)", old_index.row, new_index.row, s_menu_selection_index);
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
 
@@ -528,6 +519,8 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   //   s_horiz_scroll_timer_active = false;
   // }
   s_horiz_scroll_offset = 0;
+  s_horiz_scroll_timer_timestamp = get_timestamp();
+  
   s_horiz_scroll_menu_index = -1;
   s_menu_selection_index = -1;
   menu_layer_reload_data(browser->menu_layer);
@@ -775,8 +768,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       if (item_index == 0 && s_browser_index == 0)
       {
         s_horiz_scroll_timer_active = true;
-
-        // s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL); // FIXME
+        s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL); // FIXME
 
         // printf("calling initiate_horiz_scroll_timer");
         // initiate_horiz_scroll_timer("inbox_received_callback");
@@ -898,7 +890,6 @@ static void window_unload(Window *window)
     s_timer_fired = false;
   }
   s_timer = NULL;
-
   
 
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
@@ -1065,10 +1056,10 @@ void push_menu(char *msg, char *route, char *direction, char *stopid, char *stop
   printf("browser index...");
   printf("%d", s_browser_index);
   // if (s_browser_index == 0)
-  send_menu_app_message(true); // FIXME
-  // s_timer_browser_index = s_browser_index;
-  // s_timer = app_timer_register(
-  //   500, 
-  //   send_menu_app_message_helper, 
-  //   (void *)true);
+  // send_menu_app_message(true); // FIXME
+  s_timer_browser_index = s_browser_index;
+  s_timer = app_timer_register(
+    500, 
+    send_menu_app_message_helper, 
+    (void *)true);
 }

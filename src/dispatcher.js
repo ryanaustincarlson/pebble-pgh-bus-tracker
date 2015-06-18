@@ -48,11 +48,11 @@ var sendMenuSetupMessage = function(num_entries, msgType)
 var sendMenuEntryMessage = function(title, subtitle, selector, index, msgType)
 {
   
-  console.log('sending for ' + msgType + 
-              '... title: ' + title + 
-              ', subtitle: ' + subtitle + 
-              ', selector: ' + selector +
-              ', idx: ' + index);
+  // console.log('sending for ' + msgType + 
+  //             '... title: ' + title + 
+  //             ', subtitle: ' + subtitle + 
+  //             ', selector: ' + selector +
+  //             ', idx: ' + index);
 
   var dictionary = {
     "KEY_ITEM_INDEX" : index,
@@ -617,10 +617,10 @@ var PersistentFavoritesManager = {
 Pebble.addEventListener('appmessage',
   function(e) {
     var payload = e.payload
-    console.log("AppMessage received!");
+    // console.log("AppMessage received!");
     var requestType = payload['100'];
-    console.log('request type: ' + requestType);
-    console.log('payload: ' + JSON.stringify(payload));
+    // console.log('request type: ' + requestType);
+    // console.log('payload: ' + JSON.stringify(payload));
 
     var route = payload['101'];
     var direction = payload['102'];
