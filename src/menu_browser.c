@@ -519,8 +519,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   //   s_horiz_scroll_timer_active = false;
   // }
   s_horiz_scroll_offset = 0;
-  s_horiz_scroll_timer_timestamp = get_timestamp();
-  
+
   s_horiz_scroll_menu_index = -1;
   s_menu_selection_index = -1;
   menu_layer_reload_data(browser->menu_layer);
@@ -765,10 +764,15 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       {
         browser->menu_num_entries = item_index+1;
       }
-      if (item_index == 0 && s_browser_index == 0)
+      if (item_index == 0)
       {
-        s_horiz_scroll_timer_active = true;
-        s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL); // FIXME
+        s_horiz_scroll_timer_timestamp = get_timestamp();
+
+        if (s_browser_index == 0)
+        {
+          s_horiz_scroll_timer_active = true;
+          s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL); // FIXME
+        }
 
         // printf("calling initiate_horiz_scroll_timer");
         // initiate_horiz_scroll_timer("inbox_received_callback");
