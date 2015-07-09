@@ -1,10 +1,10 @@
 
-var getfavorites = {
+var getFavorites = {
   separator : "_@_",
   savedData : null,
   sendNextFavorite : function()
   {
-    Dispatcher.sendNextItem(getfavorites, "getfavorites");
+    Dispatcher.sendNextItem(getFavorites, "getfavorites");
   },
   get : function()
   {
@@ -13,7 +13,7 @@ var getfavorites = {
       PersistentFavoritesManager.loadFavorites();
     }
 
-    var sep = getfavorites.separator;
+    var sep = getFavorites.separator;
 
     var favs = PersistentFavoritesManager.favorites;
     var titles = [];
@@ -32,7 +32,7 @@ var getfavorites = {
       selectors.push(selector);
     }
 
-    getfavorites.savedData = {
+    getFavorites.savedData = {
       titles : titles,
       subtitles : subtitles,
       selectors : selectors,
@@ -47,12 +47,12 @@ var handleFavoritesRequest = function(should_init)
 {
   if (should_init)
   {
-    getfavorites.savedData = null;
-    getfavorites.get();
+    getFavorites.savedData = null;
+    getFavorites.get();
   }
   else
   {
-    getfavorites.sendNextFavorite();
+    getFavorites.sendNextFavorite();
   }
 };
 

@@ -1,9 +1,9 @@
 
-var getstops = {
+var getStops = {
   savedData : null,
   sendNextStop : function()
   {
-    Dispatcher.sendNextItem(getstops, 'getstops');
+    Dispatcher.sendNextItem(getStops, 'getstops');
   },
   get : function(route, direction)
   {
@@ -12,7 +12,7 @@ var getstops = {
       'dir' : direction
     };
 
-    Dispatcher.sendRequest(getstops, 'getstops', 'getstops', params, function(data){
+    Dispatcher.sendRequest(getStops, 'getstops', 'getstops', params, function(data){
       return data['bustime-response'].stops;
     }, null, function(stop) {
       return stop.stpnm;
@@ -28,11 +28,11 @@ var handleStopsRequest = function(should_init, route, direction)
 {
   if (should_init)
   {
-    getstops.savedData = null;
-    getstops.get(route, direction);
+    getStops.savedData = null;
+    getStops.get(route, direction);
   }
   else
   {
-    getstops.sendNextStop();
+    getStops.sendNextStop();
   }
 };

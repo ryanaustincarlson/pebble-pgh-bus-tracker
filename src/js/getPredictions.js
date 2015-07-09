@@ -1,5 +1,5 @@
 
-var getpredictions = {
+var getPredictions = {
   savedData : null,
   checkedFavorite : false,
   sendNextPrediction : function(requestType)
@@ -8,7 +8,7 @@ var getpredictions = {
     {
       requestType = 'getpredictions'
     }
-    Dispatcher.sendNextItem(getpredictions, requestType);
+    Dispatcher.sendNextItem(getPredictions, requestType);
   },
   get : function(route, direction, stopid, displayRequestType)
   {
@@ -23,7 +23,7 @@ var getpredictions = {
       displayRequestType = 'getpredictions'
     }
 
-    Dispatcher.sendRequest(getpredictions, 'getpredictions', displayRequestType, params, function(data) {
+    Dispatcher.sendRequest(getPredictions, 'getpredictions', displayRequestType, params, function(data) {
       return data['bustime-response'].prd;
     }, null, function(prediction) {
       var route = prediction.rt;
@@ -47,8 +47,8 @@ var handlePredictionsRequest = function(should_init, route, direction, stopid, s
 {
   if (should_init)
   {
-    getpredictions.checkedFavorite = false; // FIXME: prob don't need this now
-    getpredictions.savedData = null;
+    getPredictions.checkedFavorite = false; // FIXME: prob don't need this now
+    getPredictions.savedData = null;
 
     isfavorite = PersistentFavoritesManager.isFavorite(route, direction, stopid, stopname);
     var dictionary = {
@@ -59,22 +59,22 @@ var handlePredictionsRequest = function(should_init, route, direction, stopid, s
     Pebble.sendAppMessage(dictionary, 
       function(e) {}, 
       function(e) {});
-    getpredictions.checkedFavorite = true;
+    getPredictions.checkedFavorite = true;
   }
-  else if (getpredictions.savedData == null)
+  else if (getPredictions.savedData == null)
   {
-    getpredictions.get(route, direction, stopid, requestType);
+    getPredictions.get(route, direction, stopid, requestType);
   }
   else
   {
-    getpredictions.sendNextPrediction(requestType);
+    getPredictions.sendNextPrediction(requestType);
   }
 };
 
 /* predictions coming from the *favorites* menu */
 var handlePredictionsRequest_Favorites = function(should_init, selector)
 {
-  var fields = selector.split(getfavorites.separator);
+  var fields = selector.split(getFavorites.separator);
   var route = fields[0];
   var direction = fields[1];
   var stopid = fields[2];

@@ -1,5 +1,5 @@
 
-var getroutes = {
+var getRoutes = {
   sortRoutesFcn : function(a, b)
   {
     a = a.rt;
@@ -77,16 +77,16 @@ var getroutes = {
   savedData : null,
   sendNextRoute : function()
   {
-    // console.log('.sendNextRoute -> dispatcher.savedData: ' + getroutes.savedData);
-    Dispatcher.sendNextItem(getroutes, 'getroutes');
+    // console.log('.sendNextRoute -> dispatcher.savedData: ' + getRoutes.savedData);
+    Dispatcher.sendNextItem(getRoutes, 'getroutes');
   },
   get : function()
   {
-    // console.log('my saved data: ' + getroutes.savedData);
+    // console.log('my saved data: ' + getRoutes.savedData);
 
-    Dispatcher.sendRequest(getroutes, 'getroutes', 'getroutes', {}, function(data){
+    Dispatcher.sendRequest(getRoutes, 'getroutes', 'getroutes', {}, function(data){
       return data['bustime-response'].routes;
-    }, getroutes.sortRoutesFcn, function(route) {
+    }, getRoutes.sortRoutesFcn, function(route) {
       return route.rt;
     }, function(route) {
       return route.rtnm;
@@ -100,9 +100,9 @@ var handleRoutesRequest = function(should_init)
 {
   if (should_init)
   {
-    if (getroutes.savedData == null)
+    if (getRoutes.savedData == null)
     {
-      getroutes.get();
+      getRoutes.get();
     }
     else
     {
@@ -110,12 +110,12 @@ var handleRoutesRequest = function(should_init)
       * so there's really no need to make a network request, just
       * reset the index and re-send the data!
       */       
-      getroutes.savedData.index = 0;
-      sendMenuSetupMessage(getroutes.savedData.titles.length, "getroutes");
+      getRoutes.savedData.index = 0;
+      sendMenuSetupMessage(getRoutes.savedData.titles.length, "getroutes");
     }
   }
   else
   {
-    getroutes.sendNextRoute();
+    getRoutes.sendNextRoute();
   }
 };
