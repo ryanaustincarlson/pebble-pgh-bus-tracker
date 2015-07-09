@@ -61,7 +61,7 @@ var getstops = function(route, routename, direction)
         num_getstops_calls += 1;
         if (num_getstops_calls == expected_getstops_calls)
         {
-            console.log(Object.keys(stops_map).length);
+            // console.log(Object.keys(stops_map).length);
             console.log(stops_map);
             // console.log(JSON.stringify(stops_map));
         }
