@@ -380,6 +380,13 @@ static void horiz_scroll_callback(void *data)
     menu_index = menu_layer_get_selected_index(menu_layer);
 
     should_scroll = s_horiz_scroll_scrolling_still_required && s_menu_selection_index == menu_index.row;
+
+    // distinguish between sections for Predictions screen
+    bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
+    if (on_prediction_screen && menu_index.section == 0)
+    {
+      should_scroll = false;
+    }
   }
 
   if (should_scroll)
@@ -391,8 +398,6 @@ static void horiz_scroll_callback(void *data)
     char *title = browser->menu_titles[menu_index.row];
 
     printf("horiz scroll..: %s", title+s_horiz_scroll_offset);
-
-    // TODO: need to distinguish between sections for Predictions screen
 
     // because in row==0, menu_selection_changed doesn't get called
     // if (menu_index.row != 0)
