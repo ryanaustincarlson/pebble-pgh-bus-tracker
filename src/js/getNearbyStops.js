@@ -1,5 +1,7 @@
 var getNearbyStops = {
 
+    savedData : null,
+
     haversine : function(start, end) {
         var R = 6371; /* in kilometers */
 
@@ -19,11 +21,17 @@ var getNearbyStops = {
         return R * c;
     },
 
+    sendNextStop : function()
+    {
+        Dispatcher.sendNextItem(getNearbyStops, 'getnearbystops');
+    },
+
     get : function()
     {
         AllstopsManager.get(function(allstops) {
             distances = [];
 
+            // TODO: get from device...
             var start = {lat:40.455771, lon:-79.931979};
 
             for (var stopid in allstops)
@@ -44,10 +52,42 @@ var getNearbyStops = {
                 return a.dist - b.dist;
             });
 
-            for (var i=0; i<10; i++)
-            {
-                console.log(JSON.stringify(distances[i]) + '\n');
-            }
+            distances = distances.slice(0, 10);
+            // for (var i=0; i<distances.length; i++)
+            // {
+            //     console.log(JSON.stringify(distances[i]));
+            // }
+            // console.log("----\n-----");
+
+            Dispatcher.organizeAndSaveData(distances, getNearbyStops, function(data) {
+                return data;
+            }, null, function(item) {
+                // title
+                return item.stpnm;
+            }, function(item) {
+                // subtitle
+                return 'Stop #: ' + item.stpid;
+            }, function(item) {
+                // selector
+                return item.stpid;
+            });
+
+            // console.log(JSON.stringify(getNearbyStops.savedData));
+            sendMenuSetupMessage(getNearbyStops.savedData.titles.length, "getnearbystops");
         });
     }
 };
+
+var handleNearbyStopsRequest = function(should_init)
+{
+  if (should_init)
+  {
+    getNearbyStops.savedData = null;
+    getNearbyStops.get();
+  }
+  else
+  {
+    getNearbyStops.sendNextStop();
+  }
+};
+

@@ -21,7 +21,7 @@ static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t secti
   switch (section_index) 
   {
     case 0:
-      return 2;
+      return 3;
     default:
       return 0;
   }
@@ -71,7 +71,14 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
           // menu_cell_basic_draw(ctx, cell_layer, "Icon Item", "Select to cycle", s_menu_icons[s_current_icon]);
           break;
         }
+        case 2:
+        {
+          menu_cell_basic_draw(ctx, cell_layer, "Location", NULL, NULL);
+          break;
+        }
       }
+      break;
+    default:
       break;
   }
 }
@@ -90,6 +97,11 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
     case 1:
       // push_routes();
       push_menu("getroutes", NULL, NULL, NULL, NULL, NULL);
+      break;
+
+    // Location
+    case 2:
+      push_menu("getnearbystops", NULL, NULL, NULL, NULL, NULL);
       break;
   }
 }

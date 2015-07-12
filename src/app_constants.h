@@ -14,3 +14,4 @@
 #define MSG_STOPS "getstops"
 #define MSG_PREDICTIONS "getpredictions"
 #define MSG_FAVORITES "getfavorites"
+#define MSG_NEARBY_STOPS "getnearbystops"

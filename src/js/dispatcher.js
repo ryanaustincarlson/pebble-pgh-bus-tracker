@@ -167,11 +167,11 @@ var SWITCH = true;
 Pebble.addEventListener('appmessage',
   function(e) {
 
+    // TODO: remove this!
     if (SWITCH)
     {
-      console.log("calling getNearbyStops.get()");
-
-      getNearbyStops.get();
+      // console.log("calling getNearbyStops.get()");
+      // getNearbyStops.get();
 
       // AllstopsManager.get(function(allstops) {
       //   // console.log(JSON.stringify(allstops));
@@ -245,5 +245,9 @@ Pebble.addEventListener('appmessage',
 
       PersistentFavoritesManager.setFavorite(route, 
         direction, stopid, stopname, isfavorite);
+    }
+    else if (requestType == 'getnearbystops')
+    {
+      handleNearbyStopsRequest(should_init);
     }
   });

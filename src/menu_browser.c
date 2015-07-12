@@ -113,6 +113,11 @@ void setup_text_layer_noresults(Window *window)
   {
     keyword = "favorites";
   }
+  else if (strcmp(browser->msg, MSG_NEARBY_STOPS) == 0)
+  {
+    keyword = "nearby stops";
+  }
+
   char *start = "No ";
   char *end = "\nto display.";
   char *message = calloc(strlen(start) + strlen(keyword) + strlen(end) + 1, sizeof(char));
@@ -282,6 +287,10 @@ static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, ui
   else if (strcmp(msg, MSG_FAVORITES) == 0)
   {
     header = "Favorites";
+  }
+  else if (strcmp(msg, MSG_NEARBY_STOPS) == 0)
+  {
+    header = "Nearby Stops";
   }
 
   bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
