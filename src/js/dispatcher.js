@@ -89,7 +89,56 @@ var Dispatcher = {
       nextSubtitle = "done";
     }
 
-    sendMenuEntryMessage(nextTitle, nextSubtitle, nextSelector, index, displayRequestType);
+    sendMenuEntryMessage(nextTitle, nextSubtitle, nextSelector, index, displayRequestType);   
+  },   
+
+  organizeAndSaveData : function(data, savedDataContainer, extractDataFcn, sortDataFcn, extractTitleFcn, extractSubtitleFcn, extractSelectorFcn)   
+  {
+    var items = extractDataFcn(data);
+    if (!items)
+    {
+      items = []
+    }
+
+    /* custom sort */
+    if (!!sortDataFcn)
+    {
+      items.sort(sortDataFcn);
+    }
+
+    should_use_subtitles = true;
+
+    var titles = [];
+    var subtitles = [];
+    var selectors = [];
+    for (var i=0; i<items.length; i++)
+    {
+      var item = items[i];
+      var title = extractTitleFcn(item);
+      titles.push(title);
+
+      var subtitle = extractSubtitleFcn(item);
+      if (!subtitle)
+      {
+        should_use_subtitles = false;
+        subtitles = null;
+      }
+
+      if (should_use_subtitles)
+      {
+        subtitles.push(subtitle);
+      }
+
+      var selector = extractSelectorFcn(item);
+      selectors.push(selector);
+    }
+
+    savedDataContainer.savedData = {
+      titles : titles,
+      subtitles : subtitles,
+      selectors : selectors,
+      index : 0
+    };
   },
   sendRequest : function(savedDataContainer, requestType, displayRequestType, requestData, 
                          extractDataFcn, sortDataFcn, extractTitleFcn, 
@@ -101,54 +150,11 @@ var Dispatcher = {
       if (!!responseText)
       {
         var data = JSON.parse(responseText);
-        var items = extractDataFcn(data);
-        if (!items)
-        {
-          items = []
-        }
+        Dispatcher.organizeAndSaveData(data, savedDataContainer, 
+                                       extractDataFcn, sortDataFcn,
+                                       extractTitleFcn, extractSubtitleFcn, extractSelectorFcn);
 
-        // custom sort
-        if (!!sortDataFcn)
-        {
-          items.sort(sortDataFcn);
-        }
-
-        should_use_subtitles = true;
-
-        var titles = [];
-        var subtitles = [];
-        var selectors = [];
-        for (var i=0; i<items.length; i++)
-        {
-          var item = items[i];
-          var title = extractTitleFcn(item);
-          titles.push(title);
-
-          var subtitle = extractSubtitleFcn(item);
-          if (!subtitle)
-          {
-            should_use_subtitles = false;
-            subtitles = null;
-          }
-
-          if (should_use_subtitles)
-          {
-            subtitles.push(subtitle);
-          }
-
-          var selector = extractSelectorFcn(item);
-          selectors.push(selector);
-        }
-
-        savedDataContainer.savedData = {
-          titles : titles,
-          subtitles : subtitles,
-          selectors : selectors,
-          index : 0
-        };
-
-        var titlesLength = DISPLAY_FEWER_ROUTES ? 6 : titles.length;
-
+        var titlesLength = DISPLAY_FEWER_ROUTES ? 6 : savedDataContainer.savedData.titles.length;
         sendMenuSetupMessage(titlesLength, displayRequestType);
       }
     });
