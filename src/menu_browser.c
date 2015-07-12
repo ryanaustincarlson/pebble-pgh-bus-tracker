@@ -420,7 +420,7 @@ static void horiz_scroll_callback(void *data)
 
 static void selected_index_monitor(void *data)
 {
-  printf("monitor called");
+  // printf("monitor called"); // FIXME: useful for debugging, but need to take out at some point...
 
   unsigned long timestamp = get_timestamp();
   int difference = timestamp - s_horiz_scroll_timer_timestamp;

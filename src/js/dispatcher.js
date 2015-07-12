@@ -107,7 +107,7 @@ var Dispatcher = {
           items = []
         }
 
-        // custom sort?
+        // custom sort
         if (!!sortDataFcn)
         {
           items.sort(sortDataFcn);
@@ -163,17 +163,20 @@ Pebble.addEventListener('appmessage',
 
     if (SWITCH)
     {
-      console.log("calling allstops manager");
-      AllstopsManager.get(function(allstops) {
-        // console.log(JSON.stringify(allstops));
-        console.log(allstops);
-        var length = 0;
-        for (var stopid in allstops)
-        {
-          length++;
-        }
-        console.log(length);
-      });
+      console.log("calling getNearbyStops.get()");
+
+      getNearbyStops.get();
+
+      // AllstopsManager.get(function(allstops) {
+      //   // console.log(JSON.stringify(allstops));
+      //   console.log(allstops);
+      //   var length = 0;
+      //   for (var stopid in allstops)
+      //   {
+      //     length++;
+      //   }
+      //   console.log(length);
+      // });
       SWITCH = false;
     }
 
