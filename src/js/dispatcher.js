@@ -250,4 +250,8 @@ Pebble.addEventListener('appmessage',
     {
       handleNearbyStopsRequest(should_init);
     }
+    else if (requestType == 'getnearbyroutes')
+    {
+      handleNearbyRoutesRequest(should_init, stopid);
+    }
   });

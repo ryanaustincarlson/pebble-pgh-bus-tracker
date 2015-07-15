@@ -66,7 +66,7 @@ var getNearbyStops = {
                 return item.stpnm;
             }, function(item) {
                 // subtitle
-                return 'Stop #: ' + item.stpid;
+                return 'Stop ' + item.stpid;
             }, function(item) {
                 // selector
                 return item.stpid;

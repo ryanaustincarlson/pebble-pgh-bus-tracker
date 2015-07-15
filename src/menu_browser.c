@@ -117,6 +117,10 @@ void setup_text_layer_noresults(Window *window)
   {
     keyword = "nearby stops";
   }
+  else if (strcmp(browser->msg, MSG_NEARBY_ROUTES) == 0)
+  {
+    keyword = "nearby routes";
+  }
 
   char *start = "No ";
   char *end = "\nto display.";
@@ -291,6 +295,10 @@ static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, ui
   else if (strcmp(msg, MSG_NEARBY_STOPS) == 0)
   {
     header = "Nearby Stops";
+  }
+  else if (strcmp(msg, MSG_NEARBY_ROUTES) == 0)
+  {
+    header = "Nearby Routes";
   }
 
   bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
@@ -576,6 +584,18 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
       new_msg = MSG_PREDICTIONS;
       extra = selector;
     }
+    else if (strcmp(msg, MSG_NEARBY_STOPS) == 0)
+    {
+      new_msg = MSG_NEARBY_ROUTES;
+      stopid = selector;
+    }
+    else if (strcmp(msg, MSG_NEARBY_ROUTES) == 0)
+    {
+      new_msg = MSG_PREDICTIONS;
+      route = browser->menu_titles[cell_index->row];
+      direction = selector;
+    }
+
     printf("lots'o stuff, new_msg: %s, route: %s", new_msg ? new_msg : "NULL", route ? route : "NULL");
 
     if (new_msg)
