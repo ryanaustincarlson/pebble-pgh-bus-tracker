@@ -20,7 +20,7 @@ var getNearbyRoutes = {
             var routeFields = routeStrings[i].split('_');
             console.log(JSON.stringify(routeFields));
             routes.push({
-                num : routeFields[0],
+                rt : routeFields[0],
                 name : routeFields[1],
                 direction : routeFields[2]
             });
@@ -28,9 +28,9 @@ var getNearbyRoutes = {
 
         Dispatcher.organizeAndSaveData(routes, getNearbyRoutes, function(data) {
             return data;
-        }, null, function(item) {
+        }, getRoutes.sortRoutesFcn, function(item) {
             // title
-            return item.num;
+            return item.rt;
         }, function(item) {
             // subtitle
             return item.name + ' - ' + item.direction;
