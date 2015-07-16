@@ -36,7 +36,7 @@ var getNearbyRoutes = {
             return item.name + ' - ' + item.direction;
         }, function(item) {
             // selector
-            return item.direction;
+            return item.rt + '_' + item.name + '_' + item.direction;
         });
 
         sendMenuSetupMessage(getNearbyRoutes.savedData.titles.length, "getnearbyroutes");

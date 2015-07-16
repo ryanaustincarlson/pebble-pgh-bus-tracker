@@ -1,5 +1,6 @@
 #include <pebble.h>
 #include "menu_browser.h"
+#include "str_utils.h"
 
 #include "app_constants.h"
 #include "app_colors.h"
@@ -561,6 +562,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
 
     char *selector = browser->menu_selectors[cell_index->row];
     char *new_msg = NULL;
+    char **split = NULL; // in case we need to split things... need to free afterward
     printf("starting strcmps w/ msg: %s", msg);
 
     if (strcmp(msg, MSG_ROUTES) == 0)
@@ -594,6 +596,14 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
       new_msg = MSG_PREDICTIONS;
       route = browser->menu_titles[cell_index->row];
       direction = selector;
+
+      split = str_split(selector, '_');
+      if (split != NULL)
+      {
+        route = split[0];
+        stopname = split[1];
+        direction = split[2];
+      }      
     }
 
     printf("lots'o stuff, new_msg: %s, route: %s", new_msg ? new_msg : "NULL", route ? route : "NULL");
@@ -614,6 +624,15 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
                          // or somehow passing all this around as a void* to the various pieces, which seems gross.
       printf("browser index after: %d", s_browser_index);
       push_menu(new_msg, route, direction, stopid, stopname, extra);
+
+      if (split != NULL)
+      {
+        for (int i=0; split[i] != NULL; i++)
+        {
+          free(split[i]);
+        }
+        free(split);
+      }
     }
   }
   // otherwise check that we ARE on prediction screen and we're selecting the favorites button
