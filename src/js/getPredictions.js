@@ -26,17 +26,31 @@ var getPredictions = {
     Dispatcher.sendRequest(getPredictions, 'getpredictions', displayRequestType, params, function(data) {
       return data['bustime-response'].prd;
     }, null, function(prediction) {
+      /*
       var route = prediction.rt;
       var destination = prediction.des;
       var title = '#' + route + ' to ' + destination;
       return title;
-    }, function(prediction) {
+      */
       var timeEstimate = prediction.prdctdn;
       if (!isNaN(timeEstimate))
       {
         timeEstimate += ' min';
       }
       return timeEstimate;
+    }, function(prediction) {
+      /*
+      var timeEstimate = prediction.prdctdn;
+      if (!isNaN(timeEstimate))
+      {
+        timeEstimate += ' min';
+      }
+      return timeEstimate;
+      */
+      var route = prediction.rt;
+      var destination = prediction.des;
+      var title = '#' + route + ' to ' + destination;
+      return title;
     }, function(prediction) {
       return 'foo'; // dunno what to do here...
     });

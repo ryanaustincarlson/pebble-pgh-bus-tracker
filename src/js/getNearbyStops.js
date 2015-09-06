@@ -31,51 +31,62 @@ var getNearbyStops = {
         AllstopsManager.get(function(allstops) {
             distances = [];
 
-            // TODO: get from device...
-            var start = {lat:40.455771, lon:-79.931979};
+            var locationOptions = {
+              enableHighAccuracy: true, 
+              maximumAge: 10000, 
+              timeout: 10000
+            };
 
-            for (var stopid in allstops)
-            {
-                stop = allstops[stopid];
-                distance = getNearbyStops.haversine(start, stop);
+            navigator.geolocation.getCurrentPosition(function(position) {
+                console.log('success!: ', JSON.stringify(position));
+                console.log('lat= ' + position.coords.latitude + ' lon= ' + position.coords.longitude);
 
-                distances.push({
-                    dist  : distance,
-                    stpid : stopid,
-                    stpnm : stop.stpnm,
-                    rt    : stop.rt
+
+                // TODO: get from device...
+                // var start = {lat:40.455771, lon:-79.931979};
+                // var start = {lat:40.441669, lon:-79.9140807};
+                var start = {lat:position.coords.latitude, lon:position.coords.longitude};
+
+                for (var stopid in allstops)
+                {
+                    stop = allstops[stopid];
+                    distance = getNearbyStops.haversine(start, stop);
+
+                    distances.push({
+                        dist  : distance,
+                        stpid : stopid,
+                        stpnm : stop.stpnm,
+                        rt    : stop.rt
+                    });
+                }
+
+                /* sort by distance */
+                distances.sort(function(a, b) {
+                    return a.dist - b.dist;
                 });
-            }
 
-            /* sort by distance */
-            distances.sort(function(a, b) {
-                return a.dist - b.dist;
-            });
+                distances = distances.slice(0, 10);
 
-            distances = distances.slice(0, 10);
-            // for (var i=0; i<distances.length; i++)
-            // {
-            //     console.log(JSON.stringify(distances[i]));
-            // }
-            // console.log("----\n-----");
+                Dispatcher.organizeAndSaveData(distances, getNearbyStops, function(data) {
+                    return data;
+                }, null, function(item) {
+                    /* title */
+                    return item.stpnm;
+                }, function(item) {
+                    /* subtitle */
+                    return 'Stop ' + item.stpid;
+                }, function(item) {
+                    /* selector */
+                    return item.stpid;
+                });
 
-            Dispatcher.organizeAndSaveData(distances, getNearbyStops, function(data) {
-                return data;
-            }, null, function(item) {
-                // title
-                return item.stpnm;
-            }, function(item) {
-                // subtitle
-                return 'Stop ' + item.stpid;
-            }, function(item) {
-                // selector
-                return item.stpid;
-            });
-
-            // console.log(JSON.stringify(getNearbyStops.savedData));
-            sendMenuSetupMessage(getNearbyStops.savedData.titles.length, "getnearbystops");
-        });
-    }
+                /* console.log(JSON.stringify(getNearbyStops.savedData)); */
+                sendMenuSetupMessage(getNearbyStops.savedData.titles.length, "getnearbystops");
+            }, function(error) {
+                console.log("error!");
+            }, locationOptions);
+});
+}
 };
 
 var handleNearbyStopsRequest = function(should_init)

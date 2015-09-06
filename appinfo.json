@@ -10,7 +10,7 @@
         "KEY_EXTRA_DATA": 7
     },
     "capabilities": [
-        ""
+        "location"
     ],
     "companyName": "ryan.austin.carlson@gmail.com",
     "longName": "PGH Bus Tracker",

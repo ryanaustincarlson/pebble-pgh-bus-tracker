@@ -12,7 +12,6 @@ char * strtok(s, delim)
 	register char *s;
 	register const char *delim;
 {
-  printf("strok'ing");
 	register char *spanp;
 	register int c, sc;
 	char *tok;
@@ -79,11 +78,9 @@ char** str_split(char* a_str, const char a_delim)
         }
         tmp++;
     }
-    printf("count: %d", count);
 
     /* Add space for trailing token. */
     count += last_comma < (a_str + strlen(a_str) - 1);
-    printf("count2: %d", count);
 
     /* Add space for terminating null string so caller
        knows where the list of returned strings ends. */
@@ -95,7 +92,6 @@ char** str_split(char* a_str, const char a_delim)
     {
         size_t idx  = 0;
         char* token = strtok(a_str, delim);
-        printf("token: %s", token);
 
         while (token)
         {
@@ -105,8 +101,8 @@ char** str_split(char* a_str, const char a_delim)
             }
             *(result + idx++) = strdup(token);
             token = strtok(0, delim);
-            printf("token: %s", token);
         }
+
         if (idx != count - 1)
         {
           return NULL;

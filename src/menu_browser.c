@@ -10,20 +10,26 @@
  * CONSTANTS / STATIC VARS
  */
 
- #define HORIZ_SCROLL_WAIT_TIME 750 // ms
- #define HORIZ_SCROLL_ITEM_TIME 150 // ms
- #define HORIZ_SCROLL_VISIBLE_CHARS 15
+#define HORIZ_SCROLL_WAIT_TIME 750 // ms
+#define HORIZ_SCROLL_ITEM_TIME 150 // ms
+#define HORIZ_SCROLL_VISIBLE_CHARS 15
 
- enum LOADING_STATE {LOADING_NOT_STARTED=0, LOADING_STARTED=1, LOADING_DONE=2};
+#define MIN_ROW_HEIGHT 44
+#define MAX_ROW_HEIGHT (int)MIN_ROW_HEIGHT * 2.5
 
- typedef struct 
- {
+enum LOADING_STATE {LOADING_NOT_STARTED=0, LOADING_STARTED=1, LOADING_DONE=2};
+
+typedef struct 
+{
   Window *menu_window;
   MenuLayer *menu_layer;
   char **menu_titles;
   char **menu_subtitles;
   char **menu_selectors; // what to send back to the phone
   int menu_num_entries;
+
+  int *menu_title_heights;
+  int *menu_subtitle_heights;
 
   enum LOADING_STATE loading_state;
 
@@ -35,6 +41,8 @@
   char *extra; // anything else we need to store
   bool isfavorite; // only applies to a (route,direction,stopid) tuple
 } MenuBrowser;
+
+static const bool ENABLE_HORIZONTAL_SCROLLING = false;
 
 static void selected_index_monitor(void *data);
 
@@ -68,8 +76,21 @@ unsigned long get_timestamp()
   time_t seconds;
   uint16_t millis;
   time_ms(&seconds, &millis);
-  unsigned long timestamp = seconds * 1000 + millis;
+  unsigned long timestamp = seconds * 1000 + millis; // report milliseconds
   return timestamp;
+}
+
+int get_text_height(char *text, const Layer *layer, const char *font_key)
+{
+  GRect bounds = layer_get_frame(layer);
+  int cell_width = bounds.size.w - 10;
+  GSize size = graphics_text_layout_get_content_size(
+    text,
+    fonts_get_system_font(font_key),
+    GRect(5, 0, cell_width, MAX_ROW_HEIGHT),
+    GTextOverflowModeWordWrap,
+    GTextAlignmentLeft);
+  return size.h;
 }
 
 /*
@@ -267,6 +288,43 @@ static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t s
   return MENU_CELL_BASIC_HEADER_HEIGHT;
 }
 
+static int16_t menu_get_cell_height_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data)
+{
+  MenuBrowser *browser = s_menu_browsers[s_browser_index];
+  bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
+  if (on_prediction_screen && cell_index->section == 0)
+  {
+    return MIN_ROW_HEIGHT;
+  }
+
+  int title_height = browser->menu_title_heights[cell_index->row];
+  int subtitle_height = browser->menu_subtitle_heights[cell_index->row];
+  return  title_height + (subtitle_height + 1) + 8;
+  
+  // TODO: cache this info when it comes in as an app-message
+  // char *title = browser->menu_titles[cell_index->row];
+  // char *subtitle = browser->menu_subtitles[cell_index->row];
+
+  // GRect bounds = layer_get_frame(menu_layer_get_layer(menu_layer));
+  // int cell_width = bounds.size.w - 10;
+
+  // GRect bounding_box = GRect(5, 0, cell_width, MAX_ROW_HEIGHT);
+  // GSize title_size = graphics_text_layout_get_content_size(
+  //   title,
+  //   fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+  //   bounding_box,
+  //   GTextOverflowModeWordWrap,
+  //   GTextAlignmentLeft);
+  // GSize subtitle_size = graphics_text_layout_get_content_size(
+  //   subtitle,
+  //   fonts_get_system_font(FONT_KEY_GOTHIC_24),
+  //   bounding_box,
+  //   GTextOverflowModeWordWrap,
+  //   GTextAlignmentLeft);
+
+  // return title_size.h + (subtitle_size.h + 1) + 8;
+}
+
 static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) 
 {
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
@@ -375,13 +433,58 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 
     char *newtitle = get_menu_item_text(browser->menu_layer, cell_index->row, title);
 
-    menu_cell_basic_draw(ctx, cell_layer, newtitle, subtitle, NULL);
+    // menu_cell_basic_draw(ctx, cell_layer, newtitle, subtitle, NULL);
+
+    GRect bounds = layer_get_frame(cell_layer);
+    printf("weee!");
+    printf("origin: (%d, %d), size: (%d, %d)", bounds.origin.x, bounds.origin.y, bounds.size.w, bounds.size.h);
+
+    int title_height = browser->menu_title_heights[cell_index->row];
+    int subtitle_height = browser->menu_subtitle_heights[cell_index->row];
+    int cell_width = bounds.size.w - 10;
+
+    graphics_draw_text(ctx, newtitle,
+      fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), GRect(5, 0, cell_width, title_height),
+      GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+    graphics_draw_text(ctx, subtitle,
+      fonts_get_system_font(FONT_KEY_GOTHIC_24), GRect(5, title_height + 1, cell_width, subtitle_height),
+      GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+
+    // int title_height = MAX_ROW_HEIGHT;
+    // int cell_width = bounds.size.w - 10;
+
+    // GRect bounding_box = GRect(5, 0, cell_width, MAX_ROW_HEIGHT);
+    // GSize title_size = graphics_text_layout_get_content_size(
+    //   newtitle,
+    //   fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+    //   bounding_box,
+    //   GTextOverflowModeWordWrap,
+    //   GTextAlignmentLeft);
+    // GSize subtitle_size = graphics_text_layout_get_content_size(
+    //   subtitle,
+    //   fonts_get_system_font(FONT_KEY_GOTHIC_24),
+    //   bounding_box,
+    //   GTextOverflowModeWordWrap,
+    //   GTextAlignmentLeft);
+
+    // graphics_draw_text(ctx, newtitle,
+    //   fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), GRect(5, 0, cell_width, title_size.h),
+    //   GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+    // graphics_draw_text(ctx, subtitle,
+    //   fonts_get_system_font(FONT_KEY_GOTHIC_24), GRect(5, title_size.h + 1, cell_width, subtitle_size.h),
+    //   GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+
     // free(newtitle);
   }
 }
 
 static void horiz_scroll_callback(void *data)
 {
+  if (!ENABLE_HORIZONTAL_SCROLLING)
+  {
+    return;
+  }
+
   // printf("in horiz scroll callback");
   s_horiz_scroll_timer = NULL;
   s_horiz_scroll_offset++;
@@ -597,7 +700,9 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
       route = browser->menu_titles[cell_index->row];
       direction = selector;
 
+      printf("selector: %s", selector);
       split = str_split(selector, '_');
+      printf("done splitting!");
       if (split != NULL)
       {
         route = split[0];
@@ -619,9 +724,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
         extra ? extra : "NULL");
 
       printf("browser index before: %d", s_browser_index);
-      // s_browser_index++; // FIXME: THIS LINE IS THE PROBLEM... solution might be...
-                         // using structs and incrementing within the struct?
-                         // or somehow passing all this around as a void* to the various pieces, which seems gross.
+      
       printf("browser index after: %d", s_browser_index);
       push_menu(new_msg, route, direction, stopid, stopname, extra);
 
@@ -728,6 +831,9 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     browser->menu_titles = calloc(num_entries, sizeof(char *));
     browser->menu_selectors = calloc(num_entries, sizeof(char *));
     browser->menu_subtitles = calloc(num_entries, sizeof(char *));
+
+    browser->menu_title_heights = calloc(num_entries, sizeof(int));
+    browser->menu_subtitle_heights = calloc(num_entries, sizeof(int));
   }
 
   Window *window = browser->menu_window;
@@ -746,6 +852,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         .get_num_sections = menu_get_num_sections_callback,
         .get_num_rows = menu_get_num_rows_callback,
         .get_header_height = menu_get_header_height_callback,
+        .get_cell_height = menu_get_cell_height_callback,
         .draw_header = menu_draw_header_callback,
         .draw_row = menu_draw_row_callback,
         .select_click = menu_select_callback,
@@ -808,9 +915,13 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       browser->menu_titles[item_index] = strdup(title);
       browser->menu_selectors[item_index] = strdup(selector);
 
+      browser->menu_title_heights[item_index] = get_text_height(title, window_layer, FONT_KEY_GOTHIC_24_BOLD);
+      browser->menu_subtitle_heights[item_index] = 0;
+
       if (subtitle != NULL)
       {
         browser->menu_subtitles[item_index] = strdup(subtitle);
+        browser->menu_subtitle_heights[item_index] = get_text_height(subtitle, window_layer, FONT_KEY_GOTHIC_24);
       }
 
       if (item_index+1 > browser->menu_num_entries)
