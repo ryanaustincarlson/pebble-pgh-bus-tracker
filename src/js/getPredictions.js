@@ -13,7 +13,7 @@ var getPredictions = {
   get : function(route, direction, stopid, displayRequestType)
   {
     var params = {
-      'rt' : route,
+      // 'rt' : route,
       'dir' : direction,
       'stpid' : stopid
     };

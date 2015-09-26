@@ -691,7 +691,8 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
     }
     else if (strcmp(msg, MSG_NEARBY_STOPS) == 0)
     {
-      new_msg = MSG_NEARBY_ROUTES;
+      // new_msg = MSG_NEARBY_ROUTES;
+      new_msg = MSG_PREDICTIONS;
       stopid = selector;
     }
     else if (strcmp(msg, MSG_NEARBY_ROUTES) == 0)
