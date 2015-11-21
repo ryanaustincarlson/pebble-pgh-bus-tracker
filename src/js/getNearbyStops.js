@@ -43,9 +43,9 @@ var getNearbyStops = {
 
 
                 // TODO: get from device...
-                // var start = {lat:40.455771, lon:-79.931979};
-                // var start = {lat:40.441669, lon:-79.9140807};
-                var start = {lat:position.coords.latitude, lon:position.coords.longitude};
+                var start = {lat:40.455771, lon:-79.931979}; // negley
+                // var start = {lat:40.441669, lon:-79.9140807}; // dalzell
+                // var start = {lat:position.coords.latitude, lon:position.coords.longitude};
 
                 for (var stopid in allstops)
                 {
@@ -81,24 +81,37 @@ var getNearbyStops = {
                 });
 
                 /* console.log(JSON.stringify(getNearbyStops.savedData)); */
-                sendMenuSetupMessage(getNearbyStops.savedData.titles.length, "getnearbystops");
+                Dispatcher.sendMenuSetupMessage(getNearbyStops, "getnearbystops");
             }, function(error) {
                 console.log("error!");
             }, locationOptions);
-});
-}
+        });
+    },
+
+    handleRequest : function(should_init)
+    {
+        if (should_init)
+        {
+            getNearbyStops.savedData = null;
+            getNearbyStops.get();
+        }
+        else
+        {
+            Dispatcher.sendNextItem(getNearbyStops, 'getnearbystops');
+        }
+    }
 };
 
-var handleNearbyStopsRequest = function(should_init)
-{
-  if (should_init)
-  {
-    getNearbyStops.savedData = null;
-    getNearbyStops.get();
-  }
-  else
-  {
-    getNearbyStops.sendNextStop();
-  }
-};
+// var handleNearbyStopsRequest = function(should_init)
+// {
+//   if (should_init)
+//   {
+//     getNearbyStops.savedData = null;
+//     getNearbyStops.get();
+//   }
+//   else
+//   {
+//     getNearbyStops.sendNextStop();
+//   }
+// };
 

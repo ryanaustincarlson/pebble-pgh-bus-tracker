@@ -4,66 +4,62 @@ var DISPLAY_FEWER_ROUTES = false;
 // use to initialize favorites if we want
 // PersistentFavoritesManager.setFavorite('P1', 'INBOUND', '8161', 'East Liberty Station Stop C', true)
 
-var sendMenuSetupMessage = function(num_entries, msgType)
-{
-  // console.log('for ' + msgType + '... sending menu setup message w/ ' + num_entries + ' entries');
+// var sendMenuSetupMessage = function(dataManager, msgType)
+// {
+//   // console.log('for ' + msgType + '... sending menu setup message w/ ' + num_entries + ' entries');
+//   num_entries = dataContainer.savedData.titles.length;
 
-  var dictionary = {
-    "KEY_NUM_ENTRIES" : num_entries,
-    "KEY_MSG_TYPE" : msgType    
-  }
+//   var dictionary = {
+//     "KEY_NUM_ENTRIES" : num_entries,
+//     "KEY_MSG_TYPE" : msgType    
+//   }
 
-  Pebble.sendAppMessage(dictionary,
-    function(e) {
-      // console.log("for " + msgType + "... # entries sent to pebble successfully!");
-    },
-    function(e) {
-      console.log("Error sending # entries to pebble :(");
-    });
-}
+//   Pebble.sendAppMessage(dictionary,
+//     function(e) {
+//       console.log("for " + msgType + "... setup msg sent to pebble successfully!");
+//       console.log('handler: ' + handler)
+//       Dispatcher.sendNextItem(dataManager, msgType)
+//     },
+//     function(e) {
+//       console.log("Error sending # entries to pebble :(");
+//     });
+// }
 
-var sendMenuEntryMessage = function(title, subtitle, selector, index, msgType)
-{
+// var sendMenuEntryMessage = function(title, subtitle, selector, index, msgType, handler)
+// {
   
-  // console.log('sending for ' + msgType + 
-  //             '... title: ' + title + 
-  //             ', subtitle: ' + subtitle + 
-  //             ', selector: ' + selector +
-  //             ', idx: ' + index);
+//   // console.log('sending for ' + msgType + 
+//   //             '... title: ' + title + 
+//   //             ', subtitle: ' + subtitle + 
+//   //             ', selector: ' + selector +
+//   //             ', idx: ' + index);
 
-  var dictionary = {
-    "KEY_ITEM_INDEX" : index,
-    "KEY_MSG_TYPE" : msgType
-  };
-  if (title != null)
-  {
-    dictionary["KEY_TITLES"] = title;
-  }
-
-  if (subtitle != null)
-  {
-    dictionary["KEY_SUBTITLES"] = subtitle
-  }
-
-  if (selector != null)
-  {
-    dictionary["KEY_SELECTORS"] = selector;
-  }
-
-  Pebble.sendAppMessage(dictionary,
-    function(e) {
-      // console.log(msgType + " sent to pebble successfully!");
-    },
-    function(e) {
-      console.log("Error sending " + msgType + " to pebble :(");
-    }
-    );
-}
+// }
 
 var Dispatcher = {
-  sendNextItem : function(savedDataContainer, displayRequestType)
+  sendMenuSetupMessage : function(dataManager, msgType)
   {
-    var savedData = savedDataContainer.savedData;
+    num_entries = DISPLAY_FEWER_ROUTES ? 6 : dataManager.savedData.titles.length;
+
+    var dictionary = {
+      "KEY_NUM_ENTRIES" : num_entries,
+      "KEY_MSG_TYPE" : msgType    
+    }
+
+    // console.log("setup dict: " + JSON.stringify(dictionary));
+
+    Pebble.sendAppMessage(dictionary,
+      function(e) {
+        // console.log("for " + msgType + "... setup msg sent to pebble successfully!");
+        dataManager.handleRequest(false)
+      },
+      function(e) {
+        console.log("Error sending # entries to pebble :(");
+      });
+  },
+  sendNextItem : function(dataManager, displayRequestType)
+  {
+    var savedData = dataManager.savedData;
 
     var titles = savedData.titles;
     var subtitles = savedData.subtitles;
@@ -79,20 +75,53 @@ var Dispatcher = {
     var nextSelector = selectors[index];
 
     savedData.index = index+1;
-    savedDataContainer.savedData = savedData;
+    dataManager.savedData = savedData;
 
     var cutoff_early = DISPLAY_FEWER_ROUTES && index > 5;
+    var is_done = !nextTitle || cutoff_early;
 
-    if (!nextTitle || cutoff_early) 
+    if (is_done) 
     {
       nextTitle = "done";
       nextSubtitle = "done";
+      console.log("DONE!!!");
     }
 
-    sendMenuEntryMessage(nextTitle, nextSubtitle, nextSelector, index, displayRequestType);   
+    var dictionary = {
+      "KEY_ITEM_INDEX" : index,
+      "KEY_MSG_TYPE" : displayRequestType
+    };
+    if (nextTitle != null)
+    {
+      dictionary["KEY_TITLES"] = nextTitle;
+    }
+
+    if (nextSubtitle != null)
+    {
+      dictionary["KEY_SUBTITLES"] = nextSubtitle
+    }
+
+    if (nextSelector != null)
+    {
+      dictionary["KEY_SELECTORS"] = nextSelector;
+    }
+
+    // console.log("send next dict: " + JSON.stringify(dictionary));
+
+    Pebble.sendAppMessage(dictionary,
+      function(e) {
+        // console.log(displayRequestType + " sent to pebble successfully!");
+        if (!is_done)
+        {
+          dataManager.handleRequest(false);
+        }
+      },
+      function(e) {
+        console.log("Error sending " + displayRequestType + " to pebble :(");
+      });
   },   
 
-  organizeAndSaveData : function(data, savedDataContainer, extractDataFcn, sortDataFcn, extractTitleFcn, extractSubtitleFcn, extractSelectorFcn)   
+  organizeAndSaveData : function(data, dataManager, extractDataFcn, sortDataFcn, extractTitleFcn, extractSubtitleFcn, extractSelectorFcn)   
   {
     var items = extractDataFcn(data);
     if (!items)
@@ -133,29 +162,26 @@ var Dispatcher = {
       selectors.push(selector);
     }
 
-    savedDataContainer.savedData = {
+    dataManager.savedData = {
       titles : titles,
       subtitles : subtitles,
       selectors : selectors,
       index : 0
     };
   },
-  sendRequest : function(savedDataContainer, requestType, displayRequestType, requestData, 
-                         extractDataFcn, sortDataFcn, extractTitleFcn, 
-                         extractSubtitleFcn, extractSelectorFcn)
+  sendRequest : function(dataManager, requestType, displayRequestType, requestData, extractDataFcn, sortDataFcn, extractTitleFcn, extractSubtitleFcn, extractSelectorFcn)
   {
     var url = URLUtils.constructURL(requestType, requestData);
-    // console.log('url: ' + url);
+    console.log('request URL: ' + url);
     URLUtils.sendRequest(url, function(responseText) {
       if (!!responseText)
       {
         var data = JSON.parse(responseText);
-        Dispatcher.organizeAndSaveData(data, savedDataContainer, 
+        Dispatcher.organizeAndSaveData(data, dataManager, 
                                        extractDataFcn, sortDataFcn,
                                        extractTitleFcn, extractSubtitleFcn, extractSelectorFcn);
 
-        var titlesLength = DISPLAY_FEWER_ROUTES ? 6 : savedDataContainer.savedData.titles.length;
-        sendMenuSetupMessage(titlesLength, displayRequestType);
+        Dispatcher.sendMenuSetupMessage(dataManager, displayRequestType);
       }
     });
   }
@@ -201,23 +227,25 @@ Pebble.addEventListener('appmessage',
 
     if (requestType == 'getroutes')
     {
-      handleRoutesRequest(should_init);
+      getRoutes.handleRequest(true)
     }
     else if (requestType == 'getdirections')
     {
-      // handleRoutesRequest();
-      handleDirectionsRequest(should_init, route);
+      getDirections.handleRequest(should_init, route);
+      // handleDirectionsRequest(should_init, route);
     }
     else if (requestType == 'getstops')
     {
-      handleStopsRequest(should_init, route, direction);
+      getStops.handleRequest(should_init, route, direction);
+      // handleStopsRequest(should_init, route, direction);
     }
     else if (requestType == 'getpredictions')
     {
       if (extra == null)
       {
         console.log("~ handling predictions");
-        handlePredictionsRequest(should_init, route, direction, stopid, stopname, 'getpredictions');
+        getPredictions.handleRequest(should_init, route, direction, stopid, stopname);
+        // handlePredictionsRequest(should_init, route, direction, stopid, stopname, 'getpredictions');
       }
       else
       {
@@ -227,7 +255,8 @@ Pebble.addEventListener('appmessage',
     }
     else if (requestType == 'getfavorites')
     {
-      handleFavoritesRequest(should_init);
+      getFavorites.handleRequest(should_init)
+      // handleFavoritesRequest(should_init);
     }
     else if (requestType == 'setfavorite')
     {
@@ -248,10 +277,12 @@ Pebble.addEventListener('appmessage',
     }
     else if (requestType == 'getnearbystops')
     {
-      handleNearbyStopsRequest(should_init);
+      getNearbyStops.handleRequest(should_init);
+      // handleNearbyStopsRequest(should_init);
     }
     else if (requestType == 'getnearbyroutes')
     {
-      handleNearbyRoutesRequest(should_init, stopid);
+      getNearbyRoutes.handleRequest(should_init, stopid);
+      // handleNearbyRoutesRequest(should_init, stopid);
     }
   });

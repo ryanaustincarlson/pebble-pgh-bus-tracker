@@ -78,7 +78,7 @@ var getRoutes = {
   sendNextRoute : function()
   {
     // console.log('.sendNextRoute -> dispatcher.savedData: ' + getRoutes.savedData);
-    Dispatcher.sendNextItem(getRoutes, 'getroutes');
+    Dispatcher.sendNextItem(getRoutes, 'getroutes', getRoutes.handleRoutesRequest);
   },
   get : function()
   {
@@ -93,29 +93,28 @@ var getRoutes = {
     }, function(route) {
       return route.rt;
     });
-  }
-};
-
-var handleRoutesRequest = function(should_init)
-{
-  if (should_init)
+  },
+  handleRequest : function(should_init)
   {
-    if (getRoutes.savedData == null)
+    if (should_init)
     {
-      getRoutes.get();
+      if (getRoutes.savedData == null)
+      {
+        getRoutes.get();
+      }
+      else
+      {
+        /* else, this is not the first time we're requesting routes
+        * so there's really no need to make a network request, just
+        * reset the index and re-send the data!
+        */       
+        getRoutes.savedData.index = 0;
+        Dispatcher.sendMenuSetupMessage(getRoutes, "getroutes");
+      }
     }
     else
     {
-      /* else, this is not the first time we're requesting routes
-      * so there's really no need to make a network request, just
-      * reset the index and re-send the data!
-      */       
-      getRoutes.savedData.index = 0;
-      sendMenuSetupMessage(getRoutes.savedData.titles.length, "getroutes");
+      Dispatcher.sendNextItem(getRoutes, 'getroutes');
     }
-  }
-  else
-  {
-    getRoutes.sendNextRoute();
   }
 };

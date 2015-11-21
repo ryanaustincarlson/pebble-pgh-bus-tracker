@@ -436,8 +436,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     // menu_cell_basic_draw(ctx, cell_layer, newtitle, subtitle, NULL);
 
     GRect bounds = layer_get_frame(cell_layer);
-    printf("weee!");
-    printf("origin: (%d, %d), size: (%d, %d)", bounds.origin.x, bounds.origin.y, bounds.size.w, bounds.size.h);
+    // printf("origin: (%d, %d), size: (%d, %d)", bounds.origin.x, bounds.origin.y, bounds.size.w, bounds.size.h);
 
     int title_height = browser->menu_title_heights[cell_index->row];
     int subtitle_height = browser->menu_subtitle_heights[cell_index->row];
@@ -814,7 +813,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 
     if (strcmp("done", t->value->cstring) == 0)
     {
-      // APP_LOG(APP_LOG_LEVEL_ERROR, "Done finding messages!");
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Done finding messages!");
       done = true;
       browser->loading_state = LOADING_DONE;
     }
@@ -840,7 +839,8 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   Window *window = browser->menu_window;
   Layer *window_layer = window_get_root_layer(window);
 
-  if (browser->menu_num_entries > 0)
+  // if (browser->menu_num_entries > 0)
+  if (done)
   {
     if (!browser->menu_layer)
     {
@@ -945,14 +945,14 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 
       // printf("idx: %d, title: %s, subt: %s, sel: %s", 
       //   item_index, 
-      //   browser->menu_titles[item_index], 
-      //   browser->menu_subtitles[item_index], 
-      //   browser->menu_selectors[item_index]);
+      //   browser->menu_titles[item_index] ? browser->menu_titles[item_index] : "nil", 
+      //   browser->menu_subtitles[item_index] ? browser->menu_subtitles[item_index] : "nil", 
+      //   browser->menu_selectors[item_index] ? browser->menu_selectors[item_index] : "nil");
     }
 
     if (onscreen_browser == browser)
     {
-      send_menu_app_message(false);
+      // send_menu_app_message(false); // TODO 2015-09-26: consider removing
     }
   }
 }
@@ -1222,8 +1222,7 @@ void push_menu(char *msg, char *route, char *direction, char *stopid, char *stop
   // send_menu_app_message(true);
 
   printf("launching helper on timer");
-  printf("browser index...");
-  printf("%d", s_browser_index);
+  printf("browser index... %d", s_browser_index);
   // if (s_browser_index == 0)
   // send_menu_app_message(true); // FIXME
   s_timer_browser_index = s_browser_index;

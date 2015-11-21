@@ -21,18 +21,17 @@ var getStops = {
     }, function(stop) {
       return stop.stpid;
     });
-  }
-};
-
-var handleStopsRequest = function(should_init, route, direction)
-{
-  if (should_init)
+  },
+  handleRequest : function(should_init, route, direction)
   {
-    getStops.savedData = null;
-    getStops.get(route, direction);
-  }
-  else
-  {
-    getStops.sendNextStop();
+    if (should_init)
+    {
+      getStops.savedData = null;
+      getStops.get(route, direction);
+    }
+    else
+    {
+      Dispatcher.sendNextItem(getStops, 'getstops');
+    }
   }
 };

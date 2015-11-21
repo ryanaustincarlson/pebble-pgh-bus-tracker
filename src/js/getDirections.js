@@ -3,7 +3,7 @@ var getDirections = {
   savedData : null,
   sendNextDirection : function()
   {
-    Dispatcher.sendNextItem(getDirections, 'getdirections');
+    
   },
   get : function(route)
   {
@@ -16,18 +16,17 @@ var getDirections = {
     }, function(direction) {
       return direction.dir;
     });
-  }
-};
-
-var handleDirectionsRequest = function(should_init, route)
-{
-  if (should_init)
+  },
+  handleRequest : function(should_init, route)
   {
-    getDirections.savedData = null;
-    getDirections.get(route);
-  }
-  else
-  {
-    getDirections.sendNextDirection();
+    if (should_init)
+    {
+      getDirections.savedData = null;
+      getDirections.get(route);
+    }
+    else
+    {
+      Dispatcher.sendNextItem(getDirections, 'getdirections');
+    }
   }
 };

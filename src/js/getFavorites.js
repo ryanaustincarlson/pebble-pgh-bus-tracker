@@ -39,22 +39,21 @@ var getFavorites = {
       index : 0
     };
 
-    sendMenuSetupMessage(titles.length, "getfavorites");
+    Dispatcher.sendMenuSetupMessage(getFavorites, "getfavorites");
+  },
+  handleRequest : function(should_init)
+  {
+    if (should_init)
+    {
+      getFavorites.savedData = null;
+      getFavorites.get();
+    }
+    else
+    {
+      Dispatcher.sendNextItem(getFavorites, "getfavorites");
+    }
   }
 }
-
-var handleFavoritesRequest = function(should_init)
-{
-  if (should_init)
-  {
-    getFavorites.savedData = null;
-    getFavorites.get();
-  }
-  else
-  {
-    getFavorites.sendNextFavorite();
-  }
-};
 
 var PersistentFavoritesManager = {
   separator : "_@_",

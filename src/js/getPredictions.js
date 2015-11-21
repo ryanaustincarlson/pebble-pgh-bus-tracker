@@ -1,16 +1,11 @@
 
 var getPredictions = {
   savedData : null,
-  checkedFavorite : false,
-  sendNextPrediction : function(requestType)
+  sendNextPrediction : function()
   {
-    if (requestType == null)
-    {
-      requestType = 'getpredictions'
-    }
-    Dispatcher.sendNextItem(getPredictions, requestType);
+    Dispatcher.sendNextItem(getPredictions, 'getpredictions');
   },
-  get : function(route, direction, stopid, displayRequestType)
+  get : function(route, direction, stopid)
   {
     var params = {
       // 'rt' : route,
@@ -18,10 +13,7 @@ var getPredictions = {
       'stpid' : stopid
     };
 
-    if (displayRequestType == null)
-    {
-      displayRequestType = 'getpredictions'
-    }
+    displayRequestType = 'getpredictions'
 
     Dispatcher.sendRequest(getPredictions, 'getpredictions', displayRequestType, params, function(data) {
       return data['bustime-response'].prd;
@@ -54,36 +46,69 @@ var getPredictions = {
     }, function(prediction) {
       return 'foo'; // dunno what to do here...
     });
+  },
+  handleRequest : function(should_init, route, direction, stopid, stopname)
+  {
+    if (should_init)
+    {
+      getPredictions.savedData = null;
+
+      isfavorite = PersistentFavoritesManager.isFavorite(route, direction, stopid, stopname);
+      var dictionary = {
+        "KEY_IS_FAVORITE" : isfavorite ? 1 : 0,
+        "KEY_MSG_TYPE" : 'getpredictions'
+      };
+
+      Pebble.sendAppMessage(dictionary, 
+        function(e) {
+          // success
+          getPredictions.handleRequest(false, route, direction, stopid, stopname)
+        }, 
+        function(e) {
+          // failure - do nothing?
+        });
+    }
+    else if (getPredictions.savedData == null)
+    {
+      getPredictions.get(route, direction, stopid);
+    }
+    else
+    {
+      Dispatcher.sendNextItem(getPredictions, 'getpredictions');
+    }
   }
 };
 
-var handlePredictionsRequest = function(should_init, route, direction, stopid, stopname, requestType)
-{
-  if (should_init)
-  {
-    getPredictions.checkedFavorite = false; // FIXME: prob don't need this now
-    getPredictions.savedData = null;
+// var handlePredictionsRequest = function(should_init, route, direction, stopid, stopname)
+// {
+//   if (should_init)
+//   {
+//     getPredictions.savedData = null;
 
-    isfavorite = PersistentFavoritesManager.isFavorite(route, direction, stopid, stopname);
-    var dictionary = {
-      "KEY_IS_FAVORITE" : isfavorite ? 1 : 0,
-      "KEY_MSG_TYPE" : requestType
-    };
+//     isfavorite = PersistentFavoritesManager.isFavorite(route, direction, stopid, stopname);
+//     var dictionary = {
+//       "KEY_IS_FAVORITE" : isfavorite ? 1 : 0,
+//       "KEY_MSG_TYPE" : requestType
+//     };
 
-    Pebble.sendAppMessage(dictionary, 
-      function(e) {}, 
-      function(e) {});
-    getPredictions.checkedFavorite = true;
-  }
-  else if (getPredictions.savedData == null)
-  {
-    getPredictions.get(route, direction, stopid, requestType);
-  }
-  else
-  {
-    getPredictions.sendNextPrediction(requestType);
-  }
-};
+//     Pebble.sendAppMessage(dictionary, 
+//       function(e) {
+//         // success
+//         getPredictions.handleRequest(false, route, direction, stopid, stopname)
+//       }, 
+//       function(e) {
+//         // failure - do nothing?
+//       });
+//   }
+//   else if (getPredictions.savedData == null)
+//   {
+//     getPredictions.get(route, direction, stopid, requestType);
+//   }
+//   else
+//   {
+//     Dispatcher.sendNextItem(getPredictions, 'getpredictions');
+//   }
+// };
 
 /* predictions coming from the *favorites* menu */
 var handlePredictionsRequest_Favorites = function(should_init, selector)
@@ -96,5 +121,5 @@ var handlePredictionsRequest_Favorites = function(should_init, selector)
 
   console.log('predictions request') // TODO: log what i'm sending to predictions handler
 
-  handlePredictionsRequest(should_init, route, direction, stopid, stopname, 'getpredictions');
+  getPredictions.handleRequest(should_init, route, direction, stopid, stopname);
 };

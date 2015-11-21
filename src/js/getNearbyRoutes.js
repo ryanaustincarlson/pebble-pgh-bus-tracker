@@ -39,20 +39,33 @@ var getNearbyRoutes = {
             return item.rt + '_' + item.name + '_' + item.direction;
         });
 
-        sendMenuSetupMessage(getNearbyRoutes.savedData.titles.length, "getnearbyroutes");
+        Dispatcher.sendMenuSetupMessage(getNearbyRoutes, "getnearbyroutes");
 
+    },
+
+    handleRequest : function(should_init, stopid)
+    {
+        if (should_init)
+        {
+            getNearbyRoutes.savedData = null;
+            getNearbyRoutes.get(stopid);
+        }
+        else
+        {
+            getNearbyRoutes.sendNextRoute();
+        }
     }
 };
 
-var handleNearbyRoutesRequest = function(should_init, stopid)
-{
-    if (should_init)
-    {
-        getNearbyRoutes.savedData = null;
-        getNearbyRoutes.get(stopid);
-    }
-    else
-    {
-        getNearbyRoutes.sendNextRoute();
-    }
-}
+// var handleNearbyRoutesRequest = function(should_init, stopid)
+// {
+//     if (should_init)
+//     {
+//         getNearbyRoutes.savedData = null;
+//         getNearbyRoutes.get(stopid);
+//     }
+//     else
+//     {
+//         getNearbyRoutes.sendNextRoute();
+//     }
+// }
