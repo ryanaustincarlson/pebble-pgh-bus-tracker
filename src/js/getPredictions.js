@@ -1,6 +1,31 @@
 
 var getPredictions = {
   savedData : null,
+  sortPredictionsFcn : function(primaryRoute)
+  {
+    var innerSort = function(a, b)
+    {
+      var aRoute = a.rt;
+      var bRoute = b.rt;
+
+      var aEst = Number(a.prdctdn);
+      var bEst = Number(b.prdctdn);
+
+      if (aRoute == primaryRoute && bRoute != primaryRoute)
+      {
+        return -1;
+      }
+      else if (aRoute != primaryRoute && bRoute == primaryRoute)
+      {
+        return 1;
+      }
+      else
+      {
+        return aEst - bEst;
+      }
+    };
+    return innerSort;
+  },
   sendNextPrediction : function()
   {
     Dispatcher.sendNextItem(getPredictions, 'getpredictions');
@@ -15,15 +40,11 @@ var getPredictions = {
 
     displayRequestType = 'getpredictions'
 
+    var sortingFcn = getPredictions.sortPredictionsFcn(route);
+
     Dispatcher.sendRequest(getPredictions, 'getpredictions', displayRequestType, params, function(data) {
       return data['bustime-response'].prd;
-    }, null, function(prediction) {
-      /*
-      var route = prediction.rt;
-      var destination = prediction.des;
-      var title = '#' + route + ' to ' + destination;
-      return title;
-      */
+    }, sortingFcn, function(prediction) {
       var timeEstimate = prediction.prdctdn;
       if (!isNaN(timeEstimate))
       {
@@ -31,14 +52,6 @@ var getPredictions = {
       }
       return timeEstimate;
     }, function(prediction) {
-      /*
-      var timeEstimate = prediction.prdctdn;
-      if (!isNaN(timeEstimate))
-      {
-        timeEstimate += ' min';
-      }
-      return timeEstimate;
-      */
       var route = prediction.rt;
       var destination = prediction.des;
       var title = '#' + route + ' to ' + destination;
