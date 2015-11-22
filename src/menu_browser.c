@@ -19,7 +19,7 @@
 
 enum LOADING_STATE {LOADING_NOT_STARTED=0, LOADING_STARTED=1, LOADING_DONE=2};
 
-typedef struct 
+typedef struct
 {
   Window *menu_window;
   MenuLayer *menu_layer;
@@ -70,7 +70,7 @@ static int s_menu_selection_index = -1; // our currently selected item (row only
 
 /*
  * Utilty Functions
- */ 
+ */
 unsigned long get_timestamp()
 {
   time_t seconds;
@@ -252,7 +252,7 @@ void send_menu_app_message_helper(void *should_init_ptr)
  * MENU
  */
 
-static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) 
+static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data)
 {
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
   if (strcmp(browser->msg, MSG_PREDICTIONS) == 0)
@@ -260,7 +260,7 @@ static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data
   return 1;
 }
 
-static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) 
+static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data)
 {
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
   int num_entries = browser->menu_num_entries;
@@ -283,7 +283,7 @@ static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t secti
   return 0;
 }
 
-static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) 
+static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data)
 {
   return MENU_CELL_BASIC_HEADER_HEIGHT;
 }
@@ -300,7 +300,7 @@ static int16_t menu_get_cell_height_callback(MenuLayer *menu_layer, MenuIndex *c
   int title_height = browser->menu_title_heights[cell_index->row];
   int subtitle_height = browser->menu_subtitle_heights[cell_index->row];
   return  title_height + (subtitle_height + 1) + 8;
-  
+
   // TODO: cache this info when it comes in as an app-message
   // char *title = browser->menu_titles[cell_index->row];
   // char *subtitle = browser->menu_subtitles[cell_index->row];
@@ -325,11 +325,11 @@ static int16_t menu_get_cell_height_callback(MenuLayer *menu_layer, MenuIndex *c
   // return title_size.h + (subtitle_size.h + 1) + 8;
 }
 
-static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) 
+static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data)
 {
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
   char *msg = browser->msg;
-  
+
   char *header = NULL;
   if (strcmp(msg, MSG_ROUTES) == 0)
   {
@@ -402,7 +402,7 @@ static char *get_menu_item_text(MenuLayer *menu_layer, int index, char *text)
   return modified;
 }
 
-static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) 
+static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data)
 {
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
 
@@ -410,7 +410,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
   if (!browser->isfavorite)
   {
     favorite_msg = "Mark as Favorite";
-  } 
+  }
   else
   {
     favorite_msg = "Clear Favorite";
@@ -567,7 +567,7 @@ static void selected_index_monitor(void *data)
 
     should_scroll = s_menu_selection_index == menu_index.row && s_horiz_scroll_menu_index != menu_index.row && difference >= HORIZ_SCROLL_WAIT_TIME;
   }
-  
+
   if (should_scroll)
   {
     // start scrolling
@@ -602,8 +602,8 @@ static void menu_selection_changed_callback(MenuLayer *menu_layer, MenuIndex new
   s_menu_selection_index = new_index.row;
   // s_horiz_scroll_offset = 0;
 
-  // printf("updated current = %d, reloading to scroll? %s, timer active? %s", 
-  //   s_menu_selection_index, 
+  // printf("updated current = %d, reloading to scroll? %s, timer active? %s",
+  //   s_menu_selection_index,
   //   "NA",
   //   // s_horiz_scroll_menu_reloading_to_scroll ? "YES" : "NO",
   //   s_horiz_scroll_timer_active ? "YES" : "NO");
@@ -621,13 +621,13 @@ static void menu_selection_changed_callback(MenuLayer *menu_layer, MenuIndex new
   }*/
 }
 
-static void menu_select_long_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) 
+static void menu_select_long_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data)
 {
   printf("long click!");
   // initiate_horiz_scroll_timer();
 }
 
-static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) 
+static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data)
 {
   printf("menu select");
   printf("browser index: %d", s_browser_index);
@@ -708,7 +708,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
         route = split[0];
         stopname = split[1];
         direction = split[2];
-      }      
+      }
     }
 
     printf("lots'o stuff, new_msg: %s, route: %s", new_msg ? new_msg : "NULL", route ? route : "NULL");
@@ -717,14 +717,14 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
     {
       printf("msg: %s, route: %s, direction: %s, stopid: %s, stopname: %s: extra: %s",
         msg ? msg : "NULL",
-        route ? route : "NULL", 
-        direction ? route : "NULL", 
-        stopid ? stopid : "NULL", 
-        stopname ? stopname : "NULL", 
+        route ? route : "NULL",
+        direction ? route : "NULL",
+        stopid ? stopid : "NULL",
+        stopname ? stopname : "NULL",
         extra ? extra : "NULL");
 
       printf("browser index before: %d", s_browser_index);
-      
+
       printf("browser index after: %d", s_browser_index);
       push_menu(new_msg, route, direction, stopid, stopname, extra);
 
@@ -753,7 +753,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
  * APP MESSAGES
  */
 
-static void inbox_received_callback(DictionaryIterator *iterator, void *context) 
+static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 {
   // APP_LOG(APP_LOG_LEVEL_ERROR, "Inbox Received");
 
@@ -866,7 +866,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       #ifdef PBL_COLOR
         menu_layer_colorize(menu_layer);
       #endif
-      
+
       layer_add_child(window_layer, menu_layer_get_layer(menu_layer));
     }
     // printf("scroll timer active? %s", s_horiz_scroll_timer_active ? "YES" : "NO");
@@ -943,10 +943,10 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         // initiate_horiz_scroll_timer("inbox_received_callback");
       }
 
-      // printf("idx: %d, title: %s, subt: %s, sel: %s", 
-      //   item_index, 
-      //   browser->menu_titles[item_index] ? browser->menu_titles[item_index] : "nil", 
-      //   browser->menu_subtitles[item_index] ? browser->menu_subtitles[item_index] : "nil", 
+      // printf("idx: %d, title: %s, subt: %s, sel: %s",
+      //   item_index,
+      //   browser->menu_titles[item_index] ? browser->menu_titles[item_index] : "nil",
+      //   browser->menu_subtitles[item_index] ? browser->menu_subtitles[item_index] : "nil",
       //   browser->menu_selectors[item_index] ? browser->menu_selectors[item_index] : "nil");
     }
 
@@ -957,17 +957,17 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   }
 }
 
-static void inbox_dropped_callback(AppMessageResult reason, void *context) 
+static void inbox_dropped_callback(AppMessageResult reason, void *context)
 {
   APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
 }
 
-static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context) 
+static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context)
 {
   APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed!");
 }
 
-static void outbox_sent_callback(DictionaryIterator *iterator, void *context) 
+static void outbox_sent_callback(DictionaryIterator *iterator, void *context)
 {
   // APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
 }
@@ -1038,7 +1038,7 @@ static void free_browser_lists(MenuBrowser *browser)
   browser->menu_num_entries = 0;
 }
 
-static void window_load(Window *window) 
+static void window_load(Window *window)
 {
   #ifdef PBL_COLOR
     window_colorize(window);
@@ -1049,7 +1049,7 @@ static void window_load(Window *window)
   layer_add_child(window_layer, text_layer_get_layer(s_text_layer_loading));
 }
 
-static void window_unload(Window *window) 
+static void window_unload(Window *window)
 {
   // kill the timer so that we don't accidentally start sending
   // messages on a already-popped menu
@@ -1059,7 +1059,7 @@ static void window_unload(Window *window)
     s_timer_fired = false;
   }
   s_timer = NULL;
-  
+
 
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
   MenuLayer *menu_layer = browser->menu_layer;
@@ -1070,7 +1070,7 @@ static void window_unload(Window *window)
   {
     menu_layer_destroy(menu_layer);
   }
-  
+
   // Destroy the window
   if (menu_window != NULL)
   {
@@ -1105,7 +1105,7 @@ static void window_unload(Window *window)
   initialize_browser(browser); // set all to null
   free(browser);
   s_menu_browsers[s_browser_index] = NULL;
-  
+
   if (s_browser_index > 0)
   {
     s_browser_index--;
@@ -1124,7 +1124,7 @@ static void window_unload(Window *window)
       printf("returning to favorites menu!");
       free_browser_lists(backBrowser);
 
-      layer_add_child(window_get_root_layer(backBrowser->menu_window), 
+      layer_add_child(window_get_root_layer(backBrowser->menu_window),
         text_layer_get_layer(s_text_layer_loading));
       send_menu_app_message(true);
     }
@@ -1153,7 +1153,7 @@ static void window_unload(Window *window)
 }
 
 void push_menu(char *msg, char *route, char *direction, char *stopid, char *stopname, char *extra)
-{ 
+{
   printf("menu push");
   if (s_menu_browsers == NULL)
   {
@@ -1187,7 +1187,7 @@ void push_menu(char *msg, char *route, char *direction, char *stopid, char *stop
   browser->menu_window = window;
 
   // printf("created menu_window: %p", window);
-  
+
   // Set handlers to manage the elements inside the Window
   window_set_window_handlers(window, (WindowHandlers) {
     .load = window_load,
@@ -1227,7 +1227,7 @@ void push_menu(char *msg, char *route, char *direction, char *stopid, char *stop
   // send_menu_app_message(true); // FIXME
   s_timer_browser_index = s_browser_index;
   s_timer = app_timer_register(
-    500, 
-    send_menu_app_message_helper, 
+    500,
+    send_menu_app_message_helper,
     (void *)true);
 }
