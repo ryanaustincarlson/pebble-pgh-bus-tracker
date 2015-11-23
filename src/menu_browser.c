@@ -1,10 +1,11 @@
-#include <pebble.h>
 #include "menu_browser.h"
 #include "str_utils.h"
 
 #include "app_constants.h"
 #include "app_colors.h"
 #include "str_utils.h"
+
+#include "settings_actionbar.h"
 
 /*
  * CONSTANTS / STATIC VARS
@@ -16,31 +17,6 @@
 
 #define MIN_ROW_HEIGHT 44
 #define MAX_ROW_HEIGHT (int)MIN_ROW_HEIGHT * 2.5
-
-enum LOADING_STATE {LOADING_NOT_STARTED=0, LOADING_STARTED=1, LOADING_DONE=2};
-
-typedef struct
-{
-  Window *menu_window;
-  MenuLayer *menu_layer;
-  char **menu_titles;
-  char **menu_subtitles;
-  char **menu_selectors; // what to send back to the phone
-  int menu_num_entries;
-
-  int *menu_title_heights;
-  int *menu_subtitle_heights;
-
-  enum LOADING_STATE loading_state;
-
-  char *route;
-  char *direction;
-  char *stopid;
-  char *stopname;
-  char *msg;
-  char *extra; // anything else we need to store
-  bool isfavorite; // only applies to a (route,direction,stopid) tuple
-} MenuBrowser;
 
 static const bool ENABLE_HORIZONTAL_SCROLLING = false;
 
@@ -406,15 +382,15 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 {
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
 
-  char *favorite_msg = NULL;
-  if (!browser->isfavorite)
-  {
-    favorite_msg = "Mark as Favorite";
-  }
-  else
-  {
-    favorite_msg = "Clear Favorite";
-  }
+  // char *favorite_msg = NULL;
+  // if (!browser->isfavorite)
+  // {
+  //   favorite_msg = "Mark as Favorite";
+  // }
+  // else
+  // {
+  //   favorite_msg = "Clear Favorite";
+  // }
 
   bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
   int content_section_index = on_prediction_screen ? 1 : 0;
@@ -422,7 +398,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
   {
     if (cell_index->section ==  0)
     {
-      menu_cell_basic_draw(ctx, cell_layer, favorite_msg, NULL, NULL);
+      menu_cell_basic_draw(ctx, cell_layer, "Settings", NULL, NULL);
     }
   }
 
@@ -448,32 +424,6 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     graphics_draw_text(ctx, subtitle,
       fonts_get_system_font(FONT_KEY_GOTHIC_24), GRect(5, title_height + 1, cell_width, subtitle_height),
       GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-
-    // int title_height = MAX_ROW_HEIGHT;
-    // int cell_width = bounds.size.w - 10;
-
-    // GRect bounding_box = GRect(5, 0, cell_width, MAX_ROW_HEIGHT);
-    // GSize title_size = graphics_text_layout_get_content_size(
-    //   newtitle,
-    //   fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-    //   bounding_box,
-    //   GTextOverflowModeWordWrap,
-    //   GTextAlignmentLeft);
-    // GSize subtitle_size = graphics_text_layout_get_content_size(
-    //   subtitle,
-    //   fonts_get_system_font(FONT_KEY_GOTHIC_24),
-    //   bounding_box,
-    //   GTextOverflowModeWordWrap,
-    //   GTextAlignmentLeft);
-
-    // graphics_draw_text(ctx, newtitle,
-    //   fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), GRect(5, 0, cell_width, title_size.h),
-    //   GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-    // graphics_draw_text(ctx, subtitle,
-    //   fonts_get_system_font(FONT_KEY_GOTHIC_24), GRect(5, title_size.h + 1, cell_width, subtitle_size.h),
-    //   GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-
-    // free(newtitle);
   }
 }
 
@@ -592,7 +542,7 @@ static void menu_selection_changed_callback(MenuLayer *menu_layer, MenuIndex new
   return;
 
   // printf("selection changed %d -> %d (current = %d)", old_index.row, new_index.row, s_menu_selection_index);
-  MenuBrowser *browser = s_menu_browsers[s_browser_index];
+  // MenuBrowser *browser = s_menu_browsers[s_browser_index];
 
   if (s_menu_selection_index == new_index.row)
   {
@@ -738,14 +688,17 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
       }
     }
   }
-  // otherwise check that we ARE on prediction screen and we're selecting the favorites button
+  // otherwise check that we ARE on prediction screen and we're selecting the settings entry
   else if (on_prediction_screen && section_index == 0)
   {
+    /*
     // first we swap isfavorite bit
     browser->isfavorite = !browser->isfavorite;
     send_set_favorites_app_message();
 
-    menu_layer_reload_data(browser->menu_layer);
+    menu_layer_reload_data(browser->menu_layer);*/
+
+    push_settings_actionbar(browser);
   }
 }
 
