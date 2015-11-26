@@ -35,4 +35,4 @@ void push_menu(char *msg,
     char *stopname,
     char *extra);
 
-#endif
+#endif // _MENU_BROWSER_H

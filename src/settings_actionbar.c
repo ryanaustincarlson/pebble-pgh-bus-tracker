@@ -1,8 +1,47 @@
 #include "menu_browser.h"
+#include "app_message_utils.h"
 
-static Window *settings_window = NULL;
+static Window *s_settings_window = NULL;
+static MenuBrowser *s_menu_browser = NULL;
+static TextLayer *s_text_favorites = NULL;
 
 TextLayer *create_textlayer(GRect bounds, Layer *window_layer);
+
+static void setup_favorites_text()
+{
+  char *favtext;
+  if (s_menu_browser->isfavorite)
+  {
+    favtext = "Remove From Favorites";
+  }
+  else
+  {
+    favtext = "Add To Favorites";
+  }
+  text_layer_set_text(s_text_favorites, favtext);
+}
+
+static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
+  printf("up clicked");
+}
+
+static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
+  printf("select clicked");
+  s_menu_browser->isfavorite = !s_menu_browser->isfavorite;
+  send_set_favorites_app_message(s_menu_browser);
+  setup_favorites_text();
+}
+
+static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
+  printf("down clicked");
+}
+
+static void click_config_provider(void *context) {
+  // Register the ClickHandlers
+  window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
+  window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
+  window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
+}
 
 void window_load(Window *window)
 {
@@ -29,14 +68,17 @@ void window_load(Window *window)
   text_layer_set_text(top_text_layer, "Add to AM Commute");
 
   // center text
-  GPoint center_origin;
-  center_origin.x = left_x;
-  center_origin.y = size.h/3;
-  GRect center_bounds;
-  center_bounds.origin = center_origin;
-  center_bounds.size = segment_size;
-  TextLayer *center_text_layer = create_textlayer(center_bounds, window_layer);
-  text_layer_set_text(center_text_layer, "Add to Favorites");
+  if (!s_text_favorites)
+  {
+    GPoint center_origin;
+    center_origin.x = left_x;
+    center_origin.y = size.h/3;
+    GRect center_bounds;
+    center_bounds.origin = center_origin;
+    center_bounds.size = segment_size;
+    s_text_favorites = create_textlayer(center_bounds, window_layer);
+  }
+  setup_favorites_text();
 
   // bottom text
   GPoint bottom_origin;
@@ -60,18 +102,21 @@ TextLayer *create_textlayer(GRect bounds, Layer *window_layer)
 
 void window_unload(Window *window)
 {
-  window_destroy(settings_window);
+  window_destroy(s_settings_window);
 }
 
 void push_settings_actionbar(MenuBrowser *browser)
 {
+  s_menu_browser = browser;
   printf("hi!");
-  settings_window = window_create();
+  s_settings_window = window_create();
 
-  window_set_window_handlers(settings_window, (WindowHandlers) {
+  window_set_window_handlers(s_settings_window, (WindowHandlers) {
     .load = window_load,
     .unload = window_unload
   });
 
-  window_stack_push(settings_window, true);
+  window_set_click_config_provider(s_settings_window, click_config_provider);
+
+  window_stack_push(s_settings_window, true);
 }

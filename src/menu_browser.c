@@ -3,7 +3,7 @@
 
 #include "app_constants.h"
 #include "app_colors.h"
-#include "str_utils.h"
+#include "app_message_utils.h"
 
 #include "settings_actionbar.h"
 
@@ -148,66 +148,6 @@ void setup_text_layer_loading(Window *window)
   }
 }
 
-/*
- * MESSAGE SENDING
- */
-
-void setup_app_message_dictionary(DictionaryIterator *iter, MenuBrowser *browser)
-{
-  if (browser->route != NULL)
-  {
-    dict_write_cstring(iter, 101, browser->route);
-  }
-  if (browser->direction != NULL)
-  {
-    dict_write_cstring(iter, 102, browser->direction);
-  }
-  if (browser->stopid != NULL)
-  {
-    dict_write_cstring(iter, 103, browser->stopid);
-  }
-  if (browser->stopname != NULL)
-  {
-    dict_write_cstring(iter, 104, browser->stopname);
-  }
-  if (browser->extra != NULL)
-  {
-    dict_write_cstring(iter, 105, browser->extra);
-  }
-}
-
-void send_set_favorites_app_message()
-{
-  MenuBrowser *browser = s_menu_browsers[s_browser_index];
-
-  DictionaryIterator *iter;
-  app_message_outbox_begin(&iter);
-
-  dict_write_cstring(iter, 100, "setfavorite");
-  setup_app_message_dictionary(iter, browser);
-
-  dict_write_int8(iter, 106, browser->isfavorite ? 1 : 0);
-
-  app_message_outbox_send();
-}
-
-void send_menu_app_message(bool should_init)
-{
-  MenuBrowser *browser = s_menu_browsers[s_browser_index];
-
-  DictionaryIterator *iter;
-  app_message_outbox_begin(&iter);
-
-  dict_write_cstring(iter, 100, browser->msg);
-  setup_app_message_dictionary(iter, browser);
-
-  dict_write_int8(iter, 106, should_init ? 1 : 0);
-
-  // Send the message!
-  app_message_outbox_send();
-  // printf("sent %s message", browser->msg);
-}
-
 void send_menu_app_message_helper(void *should_init_ptr)
 {
   s_timer_fired = true;
@@ -219,7 +159,7 @@ void send_menu_app_message_helper(void *should_init_ptr)
     printf("timer browser idx: %d, browser_index: %d", s_timer_browser_index, s_browser_index);
     bool should_init = (bool)should_init_ptr;
     printf("sending menu app msg");
-    send_menu_app_message(should_init);
+    send_menu_app_message(should_init, s_menu_browsers[s_browser_index]);
   }
   printf("ahhhh");
 }
@@ -1070,7 +1010,7 @@ static void window_unload(Window *window)
       printf("back browser not finished loading!");
       menu_layer_reload_data(backBrowser->menu_layer);
       bool should_init = backBrowser->loading_state == LOADING_NOT_STARTED;
-      send_menu_app_message(should_init);
+      send_menu_app_message(should_init, s_menu_browsers[s_browser_index]);
     }
     if (strcmp(backBrowser->msg, MSG_FAVORITES) == 0)
     {
@@ -1079,7 +1019,7 @@ static void window_unload(Window *window)
 
       layer_add_child(window_get_root_layer(backBrowser->menu_window),
         text_layer_get_layer(s_text_layer_loading));
-      send_menu_app_message(true);
+      send_menu_app_message(true, s_menu_browsers[s_browser_index]);
     }
   }
   else
