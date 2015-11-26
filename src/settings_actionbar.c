@@ -68,16 +68,13 @@ void window_load(Window *window)
   text_layer_set_text(top_text_layer, "Add to AM Commute");
 
   // center text
-  if (!s_text_favorites)
-  {
-    GPoint center_origin;
-    center_origin.x = left_x;
-    center_origin.y = size.h/3;
-    GRect center_bounds;
-    center_bounds.origin = center_origin;
-    center_bounds.size = segment_size;
-    s_text_favorites = create_textlayer(center_bounds, window_layer);
-  }
+  GPoint center_origin;
+  center_origin.x = left_x;
+  center_origin.y = size.h/3;
+  GRect center_bounds;
+  center_bounds.origin = center_origin;
+  center_bounds.size = segment_size;
+  s_text_favorites = create_textlayer(center_bounds, window_layer);
   setup_favorites_text();
 
   // bottom text
@@ -103,12 +100,14 @@ TextLayer *create_textlayer(GRect bounds, Layer *window_layer)
 void window_unload(Window *window)
 {
   window_destroy(s_settings_window);
+
+  text_layer_destroy(s_text_favorites);
+
 }
 
 void push_settings_actionbar(MenuBrowser *browser)
 {
   s_menu_browser = browser;
-  printf("hi!");
   s_settings_window = window_create();
 
   window_set_window_handlers(s_settings_window, (WindowHandlers) {
