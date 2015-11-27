@@ -8,20 +8,20 @@ var getFavorites = {
   },
   get : function()
   {
-    if (PersistentFavoritesManager.favorites == null)
+    if (PersistentFavoritesManager.savedData == null)
     {
       PersistentFavoritesManager.loadFavorites();
     }
 
     var sep = getFavorites.separator;
 
-    var favs = PersistentFavoritesManager.favorites;
+    var favs = PersistentFavoritesManager.savedData;
     var titles = [];
     var subtitles = [];
     var selectors = [];
     for (var i=0; i<favs.length; i++)
     {
-      var fav = PersistentFavoritesManager.parseStorageString(favs[i]);
+      var fav = PersistentDataManagerUtils.parseStorageString(favs[i]);
 
       var title = fav.stopname;
       var subtitle = fav.route + ' - ' + fav.direction;
@@ -55,41 +55,41 @@ var getFavorites = {
   }
 }
 
-var PersistentFavoritesManager = {
+var PersistentDataManagerUtils = {
   separator : "_@_",
-  favorites : null,
-  loadFavorites : function()
+  loadData : function(dataManager)
   {
-    var jsonfavs = localStorage.getItem('favorites');
-    if (jsonfavs == null)
+    var jsonData = localStorage.getItem(dataManager.keyword);
+    console.log(jsonData);
+    if (jsonData == null)
     {
-      PersistentFavoritesManager.favorites = [];
+      dataManager.savedData = [];
     }
     else
     {
-      PersistentFavoritesManager.favorites = JSON.parse(jsonfavs);
+      dataManager.savedData = JSON.parse(jsonData);
     }
 
-    console.log('persistent loaded... ' + JSON.stringify(PersistentFavoritesManager.favorites));
+    console.log('persistent loaded... ' + JSON.stringify(dataManager.savedData));
   },
-  saveFavorites : function()
+  saveData : function(dataManager)
   {
-    if (PersistentFavoritesManager.favorites != null)
+    if (dataManager.savedData != null)
     {
-      var jsonfavs = JSON.stringify(PersistentFavoritesManager.favorites);
-      localStorage.setItem('favorites', jsonfavs);
-      console.log('persistent saved... ' + jsonfavs);
+      var jsonData = JSON.stringify(dataManager.savedData);
+      localStorage.setItem(dataManager.keyword, jsonData);
+      console.log('persistent saved... ' + jsonData);
     }
   },
   getStorageString : function(route, direction, stopid, stopname)
   {
-    var sep = PersistentFavoritesManager.separator;
+    var sep = PersistentDataManagerUtils.separator;
     var item = route + sep + direction + sep + stopid + sep + stopname;
     return item;
   },
   parseStorageString : function(storageString)
   {
-    var sep = PersistentFavoritesManager.separator;
+    var sep = PersistentDataManagerUtils.separator;
     var split = storageString.split(sep);
     var item = {
       route : split[0],
@@ -99,57 +99,181 @@ var PersistentFavoritesManager = {
     };
     return item;
   },
-  isFavorite : function(route, direction, stopid, stopname)
+  isSaved : function(dataManager, route, direction, stopid, stopname)
   {
     console.log("requesting favorites....");
-    if (PersistentFavoritesManager.favorites == null)
+    if (dataManager.savedData == null)
     {
-      PersistentFavoritesManager.loadFavorites();
+      PersistentDataManagerUtils.loadFavorites(dataManager);
     }
 
-    var item = PersistentFavoritesManager.getStorageString(route, direction, stopid, stopname);
-    var isfavorite = PersistentFavoritesManager.favorites.indexOf(item) >= 0;
-    console.log(item + ' is favorite? ' + isfavorite);
-    return isfavorite;
+    var item = PersistentDataManagerUtils.getStorageString(route, direction, stopid, stopname);
+    var issaved = dataManager.savedData.indexOf(item) >= 0;
+    console.log(item + ' is saved as ' + dataManager.keyword + '? ' + issaved);
+    return issaved;
   },
-  setFavorite : function(route, direction, stopid, stopname, isfavorite)
+  setEntry : function(dataManager, route, direction, stopid, stopname, shouldAdd)
   {
-    console.log('received set fav request rt: ' + 
+    /* shouldAdd = True if item should be added, False if item should be removed */
+    console.log('received set ' + dataManager.keyword + ' request rt: ' +
     route + ', direction: ' + direction + ', stopid: ' +
-    stopid + ', stopname: ' + stopname + ', isfav: ' + isfavorite); 
+    stopid + ', stopname: ' + stopname + ', shouldAdd: ' + shouldAdd);
 
-    if (PersistentFavoritesManager.favorites == null)
+    if (dataManager.savedData == null)
     {
-      PersistentFavoritesManager.loadFavorites();
+      PersistentDataManagerUtils.loadFavorites(dataManager);
     }
-    
+
     // use localStorage
-    var item = PersistentFavoritesManager.getStorageString(route, direction, stopid, stopname);
+    var item = PersistentDataManagerUtils.getStorageString(route, direction, stopid, stopname);
     console.log('new item: ' + item);
 
-    var changedFavorites = false;
-    if (isfavorite)
+    var changedState = false;
+    if (shouldAdd)
     {
       /* only add if item's not already there */
-      if (PersistentFavoritesManager.favorites.indexOf(item) == -1)
+      if (dataManager.savedData.indexOf(item) == -1)
       {
-        PersistentFavoritesManager.favorites.push(item);
-        changedFavorites = true;
+        dataManager.savedData.push(item);
+        changedState = true;
       }
     }
     else
     {
-      var index = PersistentFavoritesManager.favorites.indexOf(item);
+      var index = dataManager.savedData.indexOf(item);
       if (index >= 0)
       {
-        PersistentFavoritesManager.favorites.splice(index, 1);
+        dataManager.savedData.splice(index, 1);
         changedFavorites = true;
       }
     }
 
-    if (changedFavorites)
+    if (changedState)
     {
-      PersistentFavoritesManager.saveFavorites();
+      PersistentDataManagerUtils.saveData(dataManager);
     }
   }
 };
+
+var PersistentFavoritesManager = {
+  savedData : null,
+  keyword : 'favorites',
+  loadFavorites : function()
+  {
+    PersistentDataManagerUtils.loadData(PersistentFavoritesManager)
+  },
+  saveFavorites : function()
+  {
+    PersistentDataManagerUtils.saveData(PersistentFavoritesManager);
+  },
+  isFavorite : function(route, direction, stopid, stopname)
+  {
+    console.log("requesting favorites....");
+    return PersistentDataManagerUtils.isSaved(PersistentFavoritesManager, route, direction, stopid, stopname)
+  },
+  setFavorite : function(route, direction, stopid, stopname, isfavorite)
+  {
+    PersistentDataManagerUtils.setEntry(PersistentFavoritesManager, route, direction, stopid, stopname, isfavorite)
+  }
+};
+
+
+// /// old
+// var PersistentFavoritesManager = {
+//   separator : "_@_",
+//   favorites : null,
+//   loadFavorites : function()
+//   {
+//     var jsonfavs = localStorage.getItem('favorites');
+//     if (jsonfavs == null)
+//     {
+//       PersistentFavoritesManager.favorites = [];
+//     }
+//     else
+//     {
+//       PersistentFavoritesManager.favorites = JSON.parse(jsonfavs);
+//     }
+//
+//     console.log('persistent loaded... ' + JSON.stringify(PersistentFavoritesManager.favorites));
+//   },
+//   saveFavorites : function()
+//   {
+//     if (PersistentFavoritesManager.favorites != null)
+//     {
+//       var jsonfavs = JSON.stringify(PersistentFavoritesManager.favorites);
+//       localStorage.setItem('favorites', jsonfavs);
+//       console.log('persistent saved... ' + jsonfavs);
+//     }
+//   },
+//   getStorageString : function(route, direction, stopid, stopname)
+//   {
+//     var sep = PersistentFavoritesManager.separator;
+//     var item = route + sep + direction + sep + stopid + sep + stopname;
+//     return item;
+//   },
+//   parseStorageString : function(storageString)
+//   {
+//     var sep = PersistentFavoritesManager.separator;
+//     var split = storageString.split(sep);
+//     var item = {
+//       route : split[0],
+//       direction : split[1],
+//       stopid : split[2],
+//       stopname : split[3]
+//     };
+//     return item;
+//   },
+//   isFavorite : function(route, direction, stopid, stopname)
+//   {
+//     console.log("requesting favorites....");
+//     if (PersistentFavoritesManager.favorites == null)
+//     {
+//       PersistentFavoritesManager.loadFavorites();
+//     }
+//
+//     var item = PersistentFavoritesManager.getStorageString(route, direction, stopid, stopname);
+//     var isfavorite = PersistentFavoritesManager.favorites.indexOf(item) >= 0;
+//     console.log(item + ' is favorite? ' + isfavorite);
+//     return isfavorite;
+//   },
+//   setFavorite : function(route, direction, stopid, stopname, isfavorite)
+//   {
+//     console.log('received set fav request rt: ' +
+//     route + ', direction: ' + direction + ', stopid: ' +
+//     stopid + ', stopname: ' + stopname + ', isfav: ' + isfavorite);
+//
+//     if (PersistentFavoritesManager.favorites == null)
+//     {
+//       PersistentFavoritesManager.loadFavorites();
+//     }
+//
+//     // use localStorage
+//     var item = PersistentFavoritesManager.getStorageString(route, direction, stopid, stopname);
+//     console.log('new item: ' + item);
+//
+//     var changedFavorites = false;
+//     if (isfavorite)
+//     {
+//       /* only add if item's not already there */
+//       if (PersistentFavoritesManager.favorites.indexOf(item) == -1)
+//       {
+//         PersistentFavoritesManager.favorites.push(item);
+//         changedFavorites = true;
+//       }
+//     }
+//     else
+//     {
+//       var index = PersistentFavoritesManager.favorites.indexOf(item);
+//       if (index >= 0)
+//       {
+//         PersistentFavoritesManager.favorites.splice(index, 1);
+//         changedFavorites = true;
+//       }
+//     }
+//
+//     if (changedFavorites)
+//     {
+//       PersistentFavoritesManager.saveFavorites();
+//     }
+//   }
+// };
