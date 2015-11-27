@@ -36,7 +36,7 @@ var getCommute = {
     var stopids = [];
     for (var i=0; i<entries.length; i++)
     {
-      stopids.push(entries.stopid);
+      stopids.push(entries[i].stopid);
     }
     var params = {
       // 'rt' : route,

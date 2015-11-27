@@ -15,7 +15,7 @@ var PersistentDataManagerUtils = {
 
     console.log('persistent loaded... ' + JSON.stringify(dataManager.savedData));
   },
-  saveData : function(dataManager) // FIXME: is this necessary??
+  saveData : function(dataManager)
   {
     if (dataManager.savedData != null)
     {
