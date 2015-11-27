@@ -11,7 +11,7 @@ var DISPLAY_FEWER_ROUTES = false;
 
 //   var dictionary = {
 //     "KEY_NUM_ENTRIES" : num_entries,
-//     "KEY_MSG_TYPE" : msgType    
+//     "KEY_MSG_TYPE" : msgType
 //   }
 
 //   Pebble.sendAppMessage(dictionary,
@@ -27,10 +27,10 @@ var DISPLAY_FEWER_ROUTES = false;
 
 // var sendMenuEntryMessage = function(title, subtitle, selector, index, msgType, handler)
 // {
-  
-//   // console.log('sending for ' + msgType + 
-//   //             '... title: ' + title + 
-//   //             ', subtitle: ' + subtitle + 
+
+//   // console.log('sending for ' + msgType +
+//   //             '... title: ' + title +
+//   //             ', subtitle: ' + subtitle +
 //   //             ', selector: ' + selector +
 //   //             ', idx: ' + index);
 
@@ -43,7 +43,7 @@ var Dispatcher = {
 
     var dictionary = {
       "KEY_NUM_ENTRIES" : num_entries,
-      "KEY_MSG_TYPE" : msgType    
+      "KEY_MSG_TYPE" : msgType
     }
 
     // console.log("setup dict: " + JSON.stringify(dictionary));
@@ -80,7 +80,7 @@ var Dispatcher = {
     var cutoff_early = DISPLAY_FEWER_ROUTES && index > 5;
     var is_done = !nextTitle || cutoff_early;
 
-    if (is_done) 
+    if (is_done)
     {
       nextTitle = "done";
       nextSubtitle = "done";
@@ -119,9 +119,9 @@ var Dispatcher = {
       function(e) {
         console.log("Error sending " + displayRequestType + " to pebble :(");
       });
-  },   
+  },
 
-  organizeAndSaveData : function(data, dataManager, extractDataFcn, sortDataFcn, extractTitleFcn, extractSubtitleFcn, extractSelectorFcn)   
+  organizeAndSaveData : function(data, dataManager, extractDataFcn, sortDataFcn, extractTitleFcn, extractSubtitleFcn, extractSelectorFcn)
   {
     var items = extractDataFcn(data);
     if (!items)
@@ -177,7 +177,7 @@ var Dispatcher = {
       if (!!responseText)
       {
         var data = JSON.parse(responseText);
-        Dispatcher.organizeAndSaveData(data, dataManager, 
+        Dispatcher.organizeAndSaveData(data, dataManager,
                                        extractDataFcn, sortDataFcn,
                                        extractTitleFcn, extractSubtitleFcn, extractSelectorFcn);
 
@@ -251,7 +251,7 @@ Pebble.addEventListener('appmessage',
       {
         console.log('~ handling predictions_favorites');
         handlePredictionsRequest_Favorites(should_init, extra);
-      } 
+      }
     }
     else if (requestType == 'getfavorites')
     {
@@ -262,17 +262,17 @@ Pebble.addEventListener('appmessage',
     {
       var isfavorite = e.payload['106'] == 1;
 
-      // we need to extra the data first
+      // we need to extract the data first
       if (extra != null)
       {
-        var fav = PersistentFavoritesManager.parseStorageString(extra);
+        var fav = PersistentDataManagerUtils.parseStorageString(extra);
         route = fav.route;
         direction = fav.direction;
         stopid = fav.stopid;
         stopname = fav.stopname;
       }
 
-      PersistentFavoritesManager.setFavorite(route, 
+      PersistentFavoritesManager.setFavorite(route,
         direction, stopid, stopname, isfavorite);
     }
     else if (requestType == 'getnearbystops')
