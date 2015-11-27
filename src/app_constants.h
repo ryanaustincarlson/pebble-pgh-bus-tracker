@@ -18,3 +18,4 @@
 #define MSG_FAVORITES "getfavorites"
 #define MSG_NEARBY_STOPS "getnearbystops"
 #define MSG_NEARBY_ROUTES "getnearbyroutes"
+#define MSG_COMMUTE "getcommute"

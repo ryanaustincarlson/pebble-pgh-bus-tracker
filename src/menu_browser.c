@@ -119,6 +119,10 @@ void setup_text_layer_noresults(Window *window)
   {
     keyword = "nearby routes";
   }
+  else if (strcmp(browser->msg, MSG_COMMUTE) == 0)
+  {
+    keyword = "commute routes";
+  }
 
   char *start = "No ";
   char *end = "\nto display.";
@@ -274,6 +278,10 @@ static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, ui
   else if (strcmp(msg, MSG_NEARBY_ROUTES) == 0)
   {
     header = "Nearby Routes";
+  }
+  else if (strcmp(msg, MSG_COMMUTE) == 0)
+  {
+    header = "Commute";
   }
 
   bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
@@ -802,7 +810,8 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     // we need to catch it and place it in the CORRECT browser
     if (strcmp(msg_type, browser->msg) != 0)
     {
-      printf("LOADING was interrupted w/ msg_type = %s", msg_type);
+      printf("LOADING was interrupted w/ msg_type = %s, browser msg = %s",
+             msg_type, browser->msg ? browser->msg : "null");
       browser = NULL;
       for (int msgIdx=0; msgIdx<s_browser_index; msgIdx++)
       {

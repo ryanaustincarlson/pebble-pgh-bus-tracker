@@ -34,7 +34,7 @@ var getPredictions = {
   {
     var params = {
       // 'rt' : route,
-      'dir' : direction,
+      // 'dir' : direction,
       'stpid' : stopid
     };
 

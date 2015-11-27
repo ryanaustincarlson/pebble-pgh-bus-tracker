@@ -4,38 +4,6 @@ var DISPLAY_FEWER_ROUTES = false;
 // use to initialize favorites if we want
 // PersistentFavoritesManager.setFavorite('P1', 'INBOUND', '8161', 'East Liberty Station Stop C', true)
 
-// var sendMenuSetupMessage = function(dataManager, msgType)
-// {
-//   // console.log('for ' + msgType + '... sending menu setup message w/ ' + num_entries + ' entries');
-//   num_entries = dataContainer.savedData.titles.length;
-
-//   var dictionary = {
-//     "KEY_NUM_ENTRIES" : num_entries,
-//     "KEY_MSG_TYPE" : msgType
-//   }
-
-//   Pebble.sendAppMessage(dictionary,
-//     function(e) {
-//       console.log("for " + msgType + "... setup msg sent to pebble successfully!");
-//       console.log('handler: ' + handler)
-//       Dispatcher.sendNextItem(dataManager, msgType)
-//     },
-//     function(e) {
-//       console.log("Error sending # entries to pebble :(");
-//     });
-// }
-
-// var sendMenuEntryMessage = function(title, subtitle, selector, index, msgType, handler)
-// {
-
-//   // console.log('sending for ' + msgType +
-//   //             '... title: ' + title +
-//   //             ', subtitle: ' + subtitle +
-//   //             ', selector: ' + selector +
-//   //             ', idx: ' + index);
-
-// }
-
 var Dispatcher = {
   sendMenuSetupMessage : function(dataManager, msgType)
   {
@@ -46,7 +14,7 @@ var Dispatcher = {
       "KEY_MSG_TYPE" : msgType
     }
 
-    // console.log("setup dict: " + JSON.stringify(dictionary));
+    console.log("setup dict: " + JSON.stringify(dictionary));
 
     Pebble.sendAppMessage(dictionary,
       function(e) {
@@ -106,7 +74,7 @@ var Dispatcher = {
       dictionary["KEY_SELECTORS"] = nextSelector;
     }
 
-    // console.log("send next dict: " + JSON.stringify(dictionary));
+    console.log("send next dict: " + JSON.stringify(dictionary));
 
     Pebble.sendAppMessage(dictionary,
       function(e) {
@@ -174,9 +142,12 @@ var Dispatcher = {
     var url = URLUtils.constructURL(requestType, requestData);
     console.log('request URL: ' + url);
     URLUtils.sendRequest(url, function(responseText) {
+      // TODO: remove!
+      // responseText = '{"bustime-response": {"prd": [{"tmstmp": "20151126 22:02","typ": "A","stpnm": "Negley Station Stop C","stpid": "8162","vid": "3239","dstp": 27715,"rt": "P1","rtdd": "P1","rtdir": "INBOUND","des": "Downtown","prdtm": "20151126 22:24","tablockid": "P1  -165","tatripid": "65856","dly": false,"prdctdn": "21","zone": ""}]}}'
       if (!!responseText)
       {
         var data = JSON.parse(responseText);
+        console.log('data: ' + JSON.stringify(data));
         Dispatcher.organizeAndSaveData(data, dataManager,
                                        extractDataFcn, sortDataFcn,
                                        extractTitleFcn, extractSubtitleFcn, extractSelectorFcn);
@@ -296,5 +267,10 @@ Pebble.addEventListener('appmessage',
     {
       getNearbyRoutes.handleRequest(should_init, stopid);
       // handleNearbyRoutesRequest(should_init, stopid);
+    }
+    else if (requestType == 'getcommute')
+    {
+      console.log('getting commute...');
+      getCommute.handleRequest(should_init);
     }
   });
