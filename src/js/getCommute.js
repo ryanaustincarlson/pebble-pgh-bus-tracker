@@ -72,15 +72,17 @@ var getCommute = {
     {
       getCommute.savedData = null;
 
-      // TODO: check the time and choose the commute type
-      // let's just do evening now...
-      if (PersistentEveningCommuteManager.savedData == null)
+      var currentHours = new Date().getHours();
+      var isMorning = currentHours <= 12;
+
+      var persistentDataManager = isMorning ? PersistentMorningCommuteManager : PersistentEveningCommuteManager;
+      if (persistentDataManager.savedData == null)
       {
-        PersistentEveningCommuteManager.loadEveningCommute();
+        persistentDataManager.loadCommute();
       }
+      var persistentData = persistentDataManager.savedData;
 
       var sep = PersistentDataManagerUtils.separator;
-      var persistentData = PersistentEveningCommuteManager.savedData;
       var entries = [];
       for (var i=0; i<persistentData.length; i++)
       {
@@ -100,17 +102,16 @@ var getCommute = {
 var PersistentMorningCommuteManager = {
   savedData : null,
   keyword : 'am_commute',
-  loadMorningCommute : function()
+  loadCommute : function()
   {
     PersistentDataManagerUtils.loadData(PersistentMorningCommuteManager)
   },
-  saveMorningCommute : function()
+  saveCommute : function()
   {
     PersistentDataManagerUtils.saveData(PersistentMorningCommuteManager);
   },
   isMorningCommute : function(route, direction, stopid, stopname)
   {
-    console.log("requesting AM commute....");
     return PersistentDataManagerUtils.isSaved(PersistentMorningCommuteManager, route, direction, stopid, stopname)
   },
   setMorningCommute : function(route, direction, stopid, stopname, isMorningCommute)
@@ -122,17 +123,16 @@ var PersistentMorningCommuteManager = {
 var PersistentEveningCommuteManager = {
   savedData : null,
   keyword : 'pm_commute',
-  loadEveningCommute : function()
+  loadCommute : function()
   {
     PersistentDataManagerUtils.loadData(PersistentEveningCommuteManager)
   },
-  saveEveningCommute : function()
+  saveCommute : function()
   {
     PersistentDataManagerUtils.saveData(PersistentEveningCommuteManager);
   },
   isEveningCommute : function(route, direction, stopid, stopname)
   {
-    console.log("requesting PM commute....");
     return PersistentDataManagerUtils.isSaved(PersistentEveningCommuteManager, route, direction, stopid, stopname)
   },
   setEveningCommute : function(route, direction, stopid, stopname, isEveningCommute)
