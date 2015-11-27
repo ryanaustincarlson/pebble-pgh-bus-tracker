@@ -4,25 +4,58 @@
 static Window *s_settings_window = NULL;
 static MenuBrowser *s_menu_browser = NULL;
 static TextLayer *s_text_favorites = NULL;
+static TextLayer *s_text_morning_commute = NULL;
+static TextLayer *s_text_evening_commute = NULL;
 
 TextLayer *create_textlayer(GRect bounds, Layer *window_layer);
 
 static void setup_favorites_text()
 {
-  char *favtext;
+  char *text;
   if (s_menu_browser->isfavorite)
   {
-    favtext = "Remove From Favorites";
+    text = "Remove From Favorites";
   }
   else
   {
-    favtext = "Add To Favorites";
+    text = "Add To Favorites";
   }
-  text_layer_set_text(s_text_favorites, favtext);
+  text_layer_set_text(s_text_favorites, text);
+}
+
+static void setup_morning_commute_text()
+{
+  char *text;
+  if (s_menu_browser->ismorningcommute)
+  {
+    text = "Remove From AM Commute";
+  }
+  else
+  {
+    text = "Add To AM Commute";
+  }
+  text_layer_set_text(s_text_morning_commute, text);
+}
+
+static void setup_evening_commute_text()
+{
+  char *text;
+  if (s_menu_browser->iseveningcommute)
+  {
+    text = "Remove From PM Commute";
+  }
+  else
+  {
+    text = "Add To PM Commute";
+  }
+  text_layer_set_text(s_text_evening_commute, text);
 }
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
   printf("up clicked");
+  s_menu_browser->ismorningcommute = !s_menu_browser->ismorningcommute;
+  send_set_morning_commute_app_message(s_menu_browser);
+  setup_morning_commute_text();
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -34,6 +67,9 @@ static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
   printf("down clicked");
+  s_menu_browser->iseveningcommute = !s_menu_browser->iseveningcommute;
+  send_set_evening_commute_app_message(s_menu_browser);
+  setup_evening_commute_text();
 }
 
 static void click_config_provider(void *context) {
@@ -64,8 +100,8 @@ void window_load(Window *window)
   GRect top_bounds;
   top_bounds.origin = top_origin;
   top_bounds.size = segment_size;
-  TextLayer *top_text_layer = create_textlayer(top_bounds, window_layer);
-  text_layer_set_text(top_text_layer, "Add to AM Commute");
+  s_text_morning_commute = create_textlayer(top_bounds, window_layer);
+  setup_morning_commute_text();
 
   // center text
   GPoint center_origin;
@@ -84,8 +120,8 @@ void window_load(Window *window)
   GRect bottom_bounds;
   bottom_bounds.origin = bottom_origin;
   bottom_bounds.size = segment_size;
-  TextLayer *bottom_text_layer = create_textlayer(bottom_bounds, window_layer);
-  text_layer_set_text(bottom_text_layer, "Add to PM Commute");
+  s_text_evening_commute = create_textlayer(bottom_bounds, window_layer);
+  setup_evening_commute_text();
 }
 
 TextLayer *create_textlayer(GRect bounds, Layer *window_layer)

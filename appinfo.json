@@ -7,7 +7,9 @@
         "KEY_MSG_TYPE": 4,
         "KEY_SELECTORS": 5,
         "KEY_IS_FAVORITE": 6,
-        "KEY_EXTRA_DATA": 7
+        "KEY_IS_MORNING_COMMUTE": 7,
+        "KEY_IS_EVENING_COMMUTE": 8,
+        "KEY_EXTRA_DATA": 9
     },
     "capabilities": [
         "location"

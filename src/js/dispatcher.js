@@ -258,22 +258,34 @@ Pebble.addEventListener('appmessage',
       getFavorites.handleRequest(should_init)
       // handleFavoritesRequest(should_init);
     }
-    else if (requestType == 'setfavorite')
+    else if (requestType == 'setfavorite' ||
+             requestType == 'setmorningcommute' ||
+             requestType == 'seteveningcommute')
     {
-      var isfavorite = e.payload['106'] == 1;
+      var shouldAdd = e.payload['106'] == 1;
 
       // we need to extract the data first
       if (extra != null)
       {
-        var fav = PersistentDataManagerUtils.parseStorageString(extra);
-        route = fav.route;
-        direction = fav.direction;
-        stopid = fav.stopid;
-        stopname = fav.stopname;
+        var parsed = PersistentDataManagerUtils.parseStorageString(extra);
+        route = parsed.route;
+        direction = parsed.direction;
+        stopid = parsed.stopid;
+        stopname = parsed.stopname;
       }
 
-      PersistentFavoritesManager.setFavorite(route,
-        direction, stopid, stopname, isfavorite);
+      if (requestType == 'setfavorite')
+      {
+        PersistentFavoritesManager.setFavorite(route, direction, stopid, stopname, shouldAdd);
+      }
+      else if (requestType == 'setmorningcommute')
+      {
+        PersistentMorningCommuteManager.setMorningCommute(route, direction, stopid, stopname, shouldAdd);
+      }
+      else if (requestType == 'seteveningcommute')
+      {
+        PersistentEveningCommuteManager.setEveningCommute(route, direction, stopid, stopname, shouldAdd);
+      }
     }
     else if (requestType == 'getnearbystops')
     {

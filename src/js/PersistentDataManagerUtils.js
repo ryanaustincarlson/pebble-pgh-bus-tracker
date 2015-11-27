@@ -44,10 +44,10 @@ var PersistentDataManagerUtils = {
   },
   isSaved : function(dataManager, route, direction, stopid, stopname)
   {
-    console.log("requesting favorites....");
+    console.log("requesting " + dataManager.keyword + "....");
     if (dataManager.savedData == null)
     {
-      PersistentDataManagerUtils.loadFavorites(dataManager);
+      PersistentDataManagerUtils.loadData(dataManager);
     }
 
     var item = PersistentDataManagerUtils.getStorageString(route, direction, stopid, stopname);
@@ -64,7 +64,7 @@ var PersistentDataManagerUtils = {
 
     if (dataManager.savedData == null)
     {
-      PersistentDataManagerUtils.loadFavorites(dataManager);
+      PersistentDataManagerUtils.loadData(dataManager);
     }
 
     // use localStorage
@@ -87,7 +87,7 @@ var PersistentDataManagerUtils = {
       if (index >= 0)
       {
         dataManager.savedData.splice(index, 1);
-        changedFavorites = true;
+        changedState = true;
       }
     }
 

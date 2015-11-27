@@ -26,6 +26,8 @@ typedef struct
   char *msg;
   char *extra; // anything else we need to store
   bool isfavorite; // only applies to a (route,direction,stopid) tuple
+  bool ismorningcommute; // only applies to a (route,direction,stopid) tuple
+  bool iseveningcommute; // only applies to a (route,direction,stopid) tuple
 } MenuBrowser;
 
 void push_menu(char *msg,

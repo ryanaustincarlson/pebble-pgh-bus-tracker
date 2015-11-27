@@ -67,16 +67,20 @@ var getPredictions = {
       getPredictions.savedData = null;
 
       isfavorite = PersistentFavoritesManager.isFavorite(route, direction, stopid, stopname);
+      ismorningcommute = PersistentMorningCommuteManager.isMorningCommute(route, direction, stopid, stopname);
+      iseveningcommute = PersistentEveningCommuteManager.isEveningCommute(route, direction, stopid, stopname);
       var dictionary = {
         "KEY_IS_FAVORITE" : isfavorite ? 1 : 0,
+        "KEY_IS_MORNING_COMMUTE" : ismorningcommute ? 1 : 0,
+        "KEY_IS_EVENING_COMMUTE" : iseveningcommute ? 1 : 0,
         "KEY_MSG_TYPE" : 'getpredictions'
       };
 
-      Pebble.sendAppMessage(dictionary, 
+      Pebble.sendAppMessage(dictionary,
         function(e) {
           // success
           getPredictions.handleRequest(false, route, direction, stopid, stopname)
-        }, 
+        },
         function(e) {
           // failure - do nothing?
         });
@@ -104,11 +108,11 @@ var getPredictions = {
 //       "KEY_MSG_TYPE" : requestType
 //     };
 
-//     Pebble.sendAppMessage(dictionary, 
+//     Pebble.sendAppMessage(dictionary,
 //       function(e) {
 //         // success
 //         getPredictions.handleRequest(false, route, direction, stopid, stopname)
-//       }, 
+//       },
 //       function(e) {
 //         // failure - do nothing?
 //       });

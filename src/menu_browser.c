@@ -702,6 +702,18 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         printf("setting is favorite: %s", browser->isfavorite ? "yes!" : "no!");
         break;
       }
+      case KEY_IS_MORNING_COMMUTE:
+      {
+        browser->ismorningcommute = (int)t->value->int32 == 1;
+        printf("setting is morning commute: %s", browser->ismorningcommute ? "yes!" : "no!");
+        break;
+      }
+      case KEY_IS_EVENING_COMMUTE:
+      {
+        browser->iseveningcommute = (int)t->value->int32 == 1;
+        printf("setting is evening commute: %s", browser->iseveningcommute ? "yes!" : "no!");
+        break;
+      }
     }
 
     if (strcmp("done", t->value->cstring) == 0)
