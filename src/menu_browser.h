@@ -37,4 +37,6 @@ void push_menu(char *msg,
     char *stopname,
     char *extra);
 
+void menu_browser_register_app_message_callbacks();
+
 #endif // _MENU_BROWSER_H

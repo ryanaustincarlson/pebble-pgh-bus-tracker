@@ -14,7 +14,9 @@ var Dispatcher = {
       "KEY_MSG_TYPE" : msgType
     }
 
-    console.log("setup dict: " + JSON.stringify(dictionary));
+    //
+    // console.log("setup dict: " + JSON.stringify(dictionary));
+    //
 
     Pebble.sendAppMessage(dictionary,
       function(e) {
@@ -74,7 +76,9 @@ var Dispatcher = {
       dictionary["KEY_SELECTORS"] = nextSelector;
     }
 
-    console.log("send next dict: " + JSON.stringify(dictionary));
+    //
+    // console.log("send next dict: " + JSON.stringify(dictionary));
+    //
 
     Pebble.sendAppMessage(dictionary,
       function(e) {
@@ -272,5 +276,10 @@ Pebble.addEventListener('appmessage',
     {
       console.log('getting commute...');
       getCommute.handleRequest(should_init);
+    }
+    else if (requestType == 'getsaveddata')
+    {
+      console.log('get saved data');
+      getSavedData.handleRequest(route, direction, stopid, stopname);
     }
   });

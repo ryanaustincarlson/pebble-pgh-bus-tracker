@@ -27,7 +27,7 @@ var PersistentDataManagerUtils = {
   getStorageString : function(route, direction, stopid, stopname)
   {
     var sep = PersistentDataManagerUtils.separator;
-    var item = route + sep + direction + sep + stopid + sep + stopname;
+    var item = [route, direction, stopid, stopname].join(sep);
     return item;
   },
   parseStorageString : function(storageString)

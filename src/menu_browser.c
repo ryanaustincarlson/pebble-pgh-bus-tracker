@@ -174,9 +174,6 @@ void send_menu_app_message_helper(void *should_init_ptr)
 
 static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data)
 {
-  MenuBrowser *browser = s_menu_browsers[s_browser_index];
-  if (strcmp(browser->msg, MSG_PREDICTIONS) == 0)
-    return 2;
   return 1;
 }
 
@@ -185,22 +182,7 @@ static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t secti
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
   int num_entries = browser->menu_num_entries;
 
-  if (strcmp(browser->msg, MSG_PREDICTIONS) == 0)
-  {
-    if (section_index == 0)
-    {
-      return 1;
-    }
-    else if (section_index == 1)
-    {
-      return num_entries;
-    }
-  }
-  else if (section_index == 0)
-  {
-    return num_entries;
-  }
-  return 0;
+  return num_entries;
 }
 
 static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data)
@@ -211,38 +193,10 @@ static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t s
 static int16_t menu_get_cell_height_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data)
 {
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
-  bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
-  if (on_prediction_screen && cell_index->section == 0)
-  {
-    return MIN_ROW_HEIGHT;
-  }
 
   int title_height = browser->menu_title_heights[cell_index->row];
   int subtitle_height = browser->menu_subtitle_heights[cell_index->row];
   return  title_height + (subtitle_height + 1) + 8;
-
-  // TODO: cache this info when it comes in as an app-message
-  // char *title = browser->menu_titles[cell_index->row];
-  // char *subtitle = browser->menu_subtitles[cell_index->row];
-
-  // GRect bounds = layer_get_frame(menu_layer_get_layer(menu_layer));
-  // int cell_width = bounds.size.w - 10;
-
-  // GRect bounding_box = GRect(5, 0, cell_width, MAX_ROW_HEIGHT);
-  // GSize title_size = graphics_text_layout_get_content_size(
-  //   title,
-  //   fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-  //   bounding_box,
-  //   GTextOverflowModeWordWrap,
-  //   GTextAlignmentLeft);
-  // GSize subtitle_size = graphics_text_layout_get_content_size(
-  //   subtitle,
-  //   fonts_get_system_font(FONT_KEY_GOTHIC_24),
-  //   bounding_box,
-  //   GTextOverflowModeWordWrap,
-  //   GTextAlignmentLeft);
-
-  // return title_size.h + (subtitle_size.h + 1) + 8;
 }
 
 static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data)
@@ -284,11 +238,7 @@ static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, ui
     header = "Commute";
   }
 
-  bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
-  if ((on_prediction_screen && section_index == 1) || (!on_prediction_screen && section_index == 0))
-  {
-    menu_cell_basic_header_draw(ctx, cell_layer, header);
-  }
+  menu_cell_basic_header_draw(ctx, cell_layer, header);
 }
 
 static char *get_menu_item_text(MenuLayer *menu_layer, int index, char *text)
@@ -330,49 +280,26 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 {
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
 
-  // char *favorite_msg = NULL;
-  // if (!browser->isfavorite)
-  // {
-  //   favorite_msg = "Mark as Favorite";
-  // }
-  // else
-  // {
-  //   favorite_msg = "Clear Favorite";
-  // }
+  char *title = browser->menu_titles[cell_index->row];
+  char *subtitle = browser->menu_subtitles[cell_index->row];
 
-  bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
-  int content_section_index = on_prediction_screen ? 1 : 0;
-  if (on_prediction_screen)
-  {
-    if (cell_index->section ==  0)
-    {
-      menu_cell_basic_draw(ctx, cell_layer, "Settings", NULL, NULL);
-    }
-  }
+  char *newtitle = get_menu_item_text(browser->menu_layer, cell_index->row, title);
 
-  if (cell_index->section == content_section_index)
-  {
-    char *title = browser->menu_titles[cell_index->row];
-    char *subtitle = browser->menu_subtitles[cell_index->row];
+  // menu_cell_basic_draw(ctx, cell_layer, newtitle, subtitle, NULL);
 
-    char *newtitle = get_menu_item_text(browser->menu_layer, cell_index->row, title);
+  GRect bounds = layer_get_frame(cell_layer);
+  // printf("origin: (%d, %d), size: (%d, %d)", bounds.origin.x, bounds.origin.y, bounds.size.w, bounds.size.h);
 
-    // menu_cell_basic_draw(ctx, cell_layer, newtitle, subtitle, NULL);
+  int title_height = browser->menu_title_heights[cell_index->row];
+  int subtitle_height = browser->menu_subtitle_heights[cell_index->row];
+  int cell_width = bounds.size.w - 10;
 
-    GRect bounds = layer_get_frame(cell_layer);
-    // printf("origin: (%d, %d), size: (%d, %d)", bounds.origin.x, bounds.origin.y, bounds.size.w, bounds.size.h);
-
-    int title_height = browser->menu_title_heights[cell_index->row];
-    int subtitle_height = browser->menu_subtitle_heights[cell_index->row];
-    int cell_width = bounds.size.w - 10;
-
-    graphics_draw_text(ctx, newtitle,
-      fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), GRect(5, 0, cell_width, title_height),
-      GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+  graphics_draw_text(ctx, newtitle,
+    fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), GRect(5, 0, cell_width, title_height),
+    GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
     graphics_draw_text(ctx, subtitle,
       fonts_get_system_font(FONT_KEY_GOTHIC_24), GRect(5, title_height + 1, cell_width, subtitle_height),
       GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-  }
 }
 
 static void horiz_scroll_callback(void *data)
@@ -398,13 +325,6 @@ static void horiz_scroll_callback(void *data)
     menu_index = menu_layer_get_selected_index(menu_layer);
 
     should_scroll = s_horiz_scroll_scrolling_still_required && s_menu_selection_index == menu_index.row;
-
-    // distinguish between sections for Predictions screen
-    bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
-    if (on_prediction_screen && menu_index.section == 0)
-    {
-      should_scroll = false;
-    }
   }
 
   if (should_scroll)
@@ -548,105 +468,102 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   menu_layer_reload_data(browser->menu_layer);
   s_horiz_scroll_scrolling_still_required = false;
 
-  bool on_prediction_screen = strcmp(browser->msg, MSG_PREDICTIONS) == 0;
-  int section_index = cell_index->section;
-  if ((on_prediction_screen && section_index == 1) || (!on_prediction_screen && section_index == 0))
+  printf("inside if");
+  char *msg = browser->msg;
+  char *route = browser->route;
+  char *direction = browser->direction;
+  char *stopid = browser->stopid;
+  char *stopname = browser->stopname;
+  char *extra = browser->extra;
+
+  char *selector = browser->menu_selectors[cell_index->row];
+  char *new_msg = NULL;
+  char **split = NULL; // in case we need to split things... need to free afterward
+  printf("starting strcmps w/ msg: %s", msg);
+
+  if (strcmp(msg, MSG_ROUTES) == 0)
   {
-    printf("inside if");
-    char *msg = browser->msg;
-    char *route = browser->route;
-    char *direction = browser->direction;
-    char *stopid = browser->stopid;
-    char *stopname = browser->stopname;
-    char *extra = browser->extra;
+    new_msg = MSG_DIRECTIONS;
+    route = selector;
+  }
+  else if (strcmp(msg, MSG_DIRECTIONS) == 0)
+  {
+    new_msg = MSG_STOPS;
+    direction = selector;
+  }
+  else if (strcmp(msg, MSG_STOPS) == 0)
+  {
+    new_msg = MSG_PREDICTIONS;
+    stopid = selector;
+    stopname = browser->menu_titles[cell_index->row];
+  }
+  else if (strcmp(msg, MSG_FAVORITES) == 0)
+  {
+    new_msg = MSG_PREDICTIONS;
+    extra = selector;
+  }
+  else if (strcmp(msg, MSG_NEARBY_STOPS) == 0)
+  {
+    new_msg = MSG_PREDICTIONS;
+    stopid = selector;
+  }
+  else if (strcmp(msg, MSG_NEARBY_ROUTES) == 0)
+  {
+    new_msg = MSG_PREDICTIONS;
 
-    char *selector = browser->menu_selectors[cell_index->row];
-    char *new_msg = NULL;
-    char **split = NULL; // in case we need to split things... need to free afterward
-    printf("starting strcmps w/ msg: %s", msg);
-
-    if (strcmp(msg, MSG_ROUTES) == 0)
+    printf("selector: %s", selector);
+    split = str_split(selector, '_');
+    printf("done splitting!");
+    if (split != NULL)
     {
-      new_msg = MSG_DIRECTIONS;
-      route = selector;
-    }
-    else if (strcmp(msg, MSG_DIRECTIONS) == 0)
-    {
-      new_msg = MSG_STOPS;
-      direction = selector;
-    }
-    else if (strcmp(msg, MSG_STOPS) == 0)
-    {
-      new_msg = MSG_PREDICTIONS;
-      stopid = selector;
-      stopname = browser->menu_titles[cell_index->row];
-    }
-    else if (strcmp(msg, MSG_FAVORITES) == 0)
-    {
-      new_msg = MSG_PREDICTIONS;
-      extra = selector;
-    }
-    else if (strcmp(msg, MSG_NEARBY_STOPS) == 0)
-    {
-      // new_msg = MSG_NEARBY_ROUTES;
-      new_msg = MSG_PREDICTIONS;
-      stopid = selector;
-    }
-    else if (strcmp(msg, MSG_NEARBY_ROUTES) == 0)
-    {
-      new_msg = MSG_PREDICTIONS;
-      route = browser->menu_titles[cell_index->row];
-      direction = selector;
-
-      printf("selector: %s", selector);
-      split = str_split(selector, '_');
-      printf("done splitting!");
-      if (split != NULL)
-      {
-        route = split[0];
-        stopname = split[1];
-        direction = split[2];
-      }
-    }
-
-    printf("lots'o stuff, new_msg: %s, route: %s", new_msg ? new_msg : "NULL", route ? route : "NULL");
-
-    if (new_msg)
-    {
-      printf("msg: %s, route: %s, direction: %s, stopid: %s, stopname: %s: extra: %s",
-        msg ? msg : "NULL",
-        route ? route : "NULL",
-        direction ? route : "NULL",
-        stopid ? stopid : "NULL",
-        stopname ? stopname : "NULL",
-        extra ? extra : "NULL");
-
-      printf("browser index before: %d", s_browser_index);
-
-      printf("browser index after: %d", s_browser_index);
-      push_menu(new_msg, route, direction, stopid, stopname, extra);
-
-      if (split != NULL)
-      {
-        for (int i=0; split[i] != NULL; i++)
-        {
-          free(split[i]);
-        }
-        free(split);
-      }
+      route = split[0];
+      stopname = split[1];
+      direction = split[2];
     }
   }
-  // otherwise check that we ARE on prediction screen and we're selecting the settings entry
-  else if (on_prediction_screen && section_index == 0)
+  else if (strcmp(msg, MSG_PREDICTIONS) == 0 || strcmp(msg, MSG_COMMUTE) == 0)
   {
-    /*
-    // first we swap isfavorite bit
-    browser->isfavorite = !browser->isfavorite;
-    send_set_favorites_app_message();
+    char *selector_copy = strdup(selector);
+    split = str_split(selector_copy, '_');
+    free(selector_copy);
+    if (split != NULL)
+    {
+      route = split[0];
+      direction = split[1];
+      stopid = split[2];
+      stopname = split[3];
+    }
+  }
 
-    menu_layer_reload_data(browser->menu_layer);*/
+  printf("lots'o stuff, new_msg: %s, route: %s", new_msg ? new_msg : "NULL", route ? route : "NULL");
 
-    push_settings_actionbar(browser);
+  if (new_msg)
+  {
+    printf("msg: %s, route: %s, direction: %s, stopid: %s, stopname: %s: extra: %s",
+    msg ? msg : "NULL",
+    route ? route : "NULL",
+    direction ? direction : "NULL",
+    stopid ? stopid : "NULL",
+    stopname ? stopname : "NULL",
+    extra ? extra : "NULL");
+
+    printf("browser index before: %d", s_browser_index);
+
+    printf("browser index after: %d", s_browser_index);
+    push_menu(new_msg, route, direction, stopid, stopname, extra);
+  }
+  else if (split != NULL)
+  {
+    push_settings_actionbar(route, direction, stopid, stopname);
+  }
+
+  if (split != NULL)
+  {
+    for (int i=0; split[i] != NULL; i++)
+    {
+      free(split[i]);
+    }
+    free(split);
   }
 }
 
@@ -857,11 +774,11 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         // initiate_horiz_scroll_timer("inbox_received_callback");
       }
 
-      // printf("idx: %d, title: %s, subt: %s, sel: %s",
-      //   item_index,
-      //   browser->menu_titles[item_index] ? browser->menu_titles[item_index] : "nil",
-      //   browser->menu_subtitles[item_index] ? browser->menu_subtitles[item_index] : "nil",
-      //   browser->menu_selectors[item_index] ? browser->menu_selectors[item_index] : "nil");
+      printf("idx: %d, title: %s, subt: %s, sel: %s",
+        item_index,
+        browser->menu_titles[item_index] ? browser->menu_titles[item_index] : "nil",
+        browser->menu_subtitles[item_index] ? browser->menu_subtitles[item_index] : "nil",
+        browser->menu_selectors[item_index] ? browser->menu_selectors[item_index] : "nil");
     }
 
     if (onscreen_browser == browser)
@@ -1066,6 +983,15 @@ static void window_unload(Window *window)
   APP_LOG(APP_LOG_LEVEL_ERROR, "Unloaded");
 }
 
+void menu_browser_register_app_message_callbacks()
+{
+  printf("~ registered menu browser app msg callbacks");
+  app_message_register_inbox_received(inbox_received_callback);
+  app_message_register_inbox_dropped(inbox_dropped_callback);
+  app_message_register_outbox_failed(outbox_failed_callback);
+  app_message_register_outbox_sent(outbox_sent_callback);
+}
+
 void push_menu(char *msg, char *route, char *direction, char *stopid, char *stopname, char *extra)
 {
   printf("menu push");
@@ -1075,16 +1001,17 @@ void push_menu(char *msg, char *route, char *direction, char *stopid, char *stop
     int num_browsers = 4;
     s_menu_browsers = calloc(num_browsers, sizeof(MenuBrowser *));
     s_browser_index = 0;
-
-    app_message_register_inbox_received(inbox_received_callback);
-    app_message_register_inbox_dropped(inbox_dropped_callback);
-    app_message_register_outbox_failed(outbox_failed_callback);
-    app_message_register_outbox_sent(outbox_sent_callback);
   }
   else
   {
     s_browser_index++;
   }
+
+  menu_browser_register_app_message_callbacks();
+  // app_message_register_inbox_received(inbox_received_callback);
+  // app_message_register_inbox_dropped(inbox_dropped_callback);
+  // app_message_register_outbox_failed(outbox_failed_callback);
+  // app_message_register_outbox_sent(outbox_sent_callback);
 
   MenuBrowser *browser = calloc(1, sizeof(MenuBrowser)); // s_menu_browsers[s_browser_index];
   initialize_browser(browser);

@@ -10,6 +10,7 @@ void setup_app_message_dictionary(DictionaryIterator *iter, MenuBrowser *browser
 void send_set_favorites_app_message(MenuBrowser *browser);
 void send_set_morning_commute_app_message(MenuBrowser *browser);
 void send_set_evening_commute_app_message(MenuBrowser *browser);
+void send_get_saved_data_app_message(MenuBrowser *browser);
 void send_menu_app_message(bool should_init, MenuBrowser *browser);
 
 #endif // _APP_MESSAGE_UTILS_H

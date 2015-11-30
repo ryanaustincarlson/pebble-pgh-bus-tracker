@@ -1,5 +1,7 @@
 #include "menu_browser.h"
 #include "app_message_utils.h"
+#include "str_utils.h"
+#include "app_constants.h"
 
 static Window *s_settings_window = NULL;
 static MenuBrowser *s_menu_browser = NULL;
@@ -8,7 +10,75 @@ static TextLayer *s_text_morning_commute = NULL;
 static TextLayer *s_text_evening_commute = NULL;
 
 TextLayer *create_textlayer(GRect bounds, Layer *window_layer);
+void window_load(Window *window);
 
+/*
+ * App Messages
+ */
+
+static void inbox_received_callback(DictionaryIterator *iterator, void *context)
+{
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Inbox Received");
+
+  bool is_favorite = false;
+  bool is_am_commute = false;
+  bool is_pm_commute = false;
+
+  Tuple *t = dict_read_first(iterator);
+  while (t != NULL)
+  {
+    switch(t->key)
+    {
+      case KEY_IS_FAVORITE:
+      {
+        is_favorite = (int)t->value->int32 == 1;
+        break;
+      }
+      case KEY_IS_MORNING_COMMUTE:
+      {
+        is_am_commute = (int)t->value->int32 == 1;
+        break;
+      }
+      case KEY_IS_EVENING_COMMUTE:
+      {
+        is_pm_commute = (int)t->value->int32 == 1;
+        break;
+      }
+    }
+
+    t = dict_read_next(iterator);
+  }
+
+  printf("is fav? %s, is AM? %s, is PM? %s",
+          is_favorite ? "yes" : "no",
+          is_am_commute ? "yes" : "no",
+          is_pm_commute ? "yes" : "no");
+
+  s_menu_browser->isfavorite = is_favorite;
+  s_menu_browser->ismorningcommute = is_am_commute;
+  s_menu_browser->iseveningcommute = is_pm_commute;
+
+  window_load(s_settings_window);
+}
+
+static void inbox_dropped_callback(AppMessageResult reason, void *context)
+{
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
+}
+
+static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context)
+{
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed!");
+}
+
+static void outbox_sent_callback(DictionaryIterator *iterator, void *context)
+{
+  // APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
+}
+
+/*
+ * setup text
+ */
 static void setup_favorites_text()
 {
   char *text;
@@ -137,13 +207,60 @@ void window_unload(Window *window)
 {
   window_destroy(s_settings_window);
 
-  text_layer_destroy(s_text_favorites);
+  if (s_menu_browser->route != NULL)
+  {
+    free(s_menu_browser->route);
+  }
+  if (s_menu_browser->direction != NULL)
+  {
+    free(s_menu_browser->direction);
+  }
+  if (s_menu_browser->stopid != NULL)
+  {
+    free(s_menu_browser->stopid);
+  }
+  if (s_menu_browser->stopname != NULL)
+  {
+    free(s_menu_browser->stopname);
+  }
+  if (s_menu_browser->extra != NULL)
+  {
+    free(s_menu_browser->extra);
+  }
+  free(s_menu_browser);
+  s_menu_browser = NULL;
 
+  text_layer_destroy(s_text_favorites);
+  s_text_favorites = NULL;
+
+  text_layer_destroy(s_text_morning_commute);
+  s_text_morning_commute = NULL;
+
+  text_layer_destroy(s_text_evening_commute);
+  s_text_evening_commute = NULL;
+
+  app_message_deregister_callbacks();
+  menu_browser_register_app_message_callbacks();
 }
 
-void push_settings_actionbar(MenuBrowser *browser)
+void push_settings_actionbar(char *route, char *direction, char *stopid, char *stopname)
 {
-  s_menu_browser = browser;
+  printf("pushing actionbar w/ route: %s, dir: %s, stopid: %s, stopname: %s",
+    route ? route : "null", direction ? direction : "null",
+    stopid ? stopid : "null", stopname ? stopname : "null");
+  s_menu_browser = calloc(1, sizeof(MenuBrowser));
+  s_menu_browser->route = strdup(route);
+  s_menu_browser->direction = strdup(direction);
+  s_menu_browser->stopid = strdup(stopid);
+  s_menu_browser->stopname = strdup(stopname);
+
+  app_message_register_inbox_received(inbox_received_callback);
+  app_message_register_inbox_dropped(inbox_dropped_callback);
+  app_message_register_outbox_failed(outbox_failed_callback);
+  app_message_register_outbox_sent(outbox_sent_callback);
+
+  send_get_saved_data_app_message(s_menu_browser);
+
   s_settings_window = window_create();
 
   window_set_window_handlers(s_settings_window, (WindowHandlers) {

@@ -57,7 +57,8 @@ var getPredictions = {
       var title = '#' + route + ' to ' + destination;
       return title;
     }, function(prediction) {
-      return 'foo'; // dunno what to do here...
+      // selector
+      return [prediction.rt, prediction.rtdir, prediction.stpid, prediction.stpnm].join('_');
     });
   },
   handleRequest : function(should_init, route, direction, stopid, stopname)
@@ -130,7 +131,7 @@ var getPredictions = {
 /* predictions coming from the *favorites* menu */
 var handlePredictionsRequest_Favorites = function(should_init, selector)
 {
-  var fields = selector.split(getFavorites.separator);
+  var fields = selector.split(PersistentDataManagerUtils.separator);
   var route = fields[0];
   var direction = fields[1];
   var stopid = fields[2];

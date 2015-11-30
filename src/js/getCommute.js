@@ -63,7 +63,8 @@ var getCommute = {
       var title = '#' + route + ' to ' + destination;
       return title;
     }, function(prediction) {
-      return 'foo'; // dunno what to do here...
+      return [prediction.rt, prediction.rtdir, prediction.stpid, prediction.stpnm].join('_');
+      // return 'foo'; // dunno what to do here...
     });
   },
   handleRequest : function(should_init, route, direction, stopid, stopname)
@@ -87,6 +88,7 @@ var getCommute = {
       for (var i=0; i<persistentData.length; i++)
       {
         var commuteEntry = PersistentDataManagerUtils.parseStorageString(persistentData[i]);
+        console.log(JSON.stringify(commuteEntry));
         entries.push(commuteEntry);
       }
 

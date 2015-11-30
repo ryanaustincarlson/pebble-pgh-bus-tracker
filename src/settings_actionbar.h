@@ -3,6 +3,6 @@
 
 #include "menu_browser.h"
 
-void push_settings_actionbar(MenuBrowser *browser);
+void push_settings_actionbar(char *route, char *direction, char *stopid, char *stopname);
 
 #endif
