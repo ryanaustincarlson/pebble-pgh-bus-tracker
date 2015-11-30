@@ -33,13 +33,24 @@ var getCommute = {
   },
   get : function(entries)
   {
+    var routes = [];
     var stopids = [];
     for (var i=0; i<entries.length; i++)
     {
-      stopids.push(entries[i].stopid);
+      var route = entries[i].route;
+      var stopid = entries[i].stopid;
+      if (routes.indexOf(route) == -1)
+      {
+        routes.push(route);
+      }
+
+      if (stopids.indexOf(stopid) == -1)
+      {
+        stopids.push(stopid);
+      }
     }
     var params = {
-      // 'rt' : route,
+      'rt' : routes.join(','),
       // 'dir' : direction,
       'stpid' : stopids.join(',')
     };
