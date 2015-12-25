@@ -2,6 +2,8 @@
 #include "app_message_utils.h"
 #include "str_utils.h"
 #include "app_constants.h"
+#include "shared_ui.h"
+#include "app_colors.h"
 
 static Window *s_settings_window = NULL;
 static MenuBrowser *s_menu_browser = NULL;
@@ -9,8 +11,9 @@ static TextLayer *s_text_favorites = NULL;
 static TextLayer *s_text_morning_commute = NULL;
 static TextLayer *s_text_evening_commute = NULL;
 
-TextLayer *create_textlayer(GRect bounds, Layer *window_layer);
-void window_load(Window *window);
+static TextLayer *create_textlayer(GRect bounds, Layer *window_layer);
+static void window_load(Window *window);
+static void setup_commute_text();
 
 /*
  * App Messages
@@ -58,7 +61,9 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   s_menu_browser->ismorningcommute = is_am_commute;
   s_menu_browser->iseveningcommute = is_pm_commute;
 
-  window_load(s_settings_window);
+  // window_load(s_settings_window);
+  setup_commute_text();
+  layer_remove_from_parent(text_layer_get_layer(get_text_layer_loading(NULL)));
 }
 
 static void inbox_dropped_callback(AppMessageResult reason, void *context)
@@ -121,37 +126,9 @@ static void setup_evening_commute_text()
   text_layer_set_text(s_text_evening_commute, text);
 }
 
-static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
-  printf("up clicked");
-  s_menu_browser->ismorningcommute = !s_menu_browser->ismorningcommute;
-  send_set_morning_commute_app_message(s_menu_browser);
-  setup_morning_commute_text();
-}
-
-static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
-  printf("select clicked");
-  s_menu_browser->isfavorite = !s_menu_browser->isfavorite;
-  send_set_favorites_app_message(s_menu_browser);
-  setup_favorites_text();
-}
-
-static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
-  printf("down clicked");
-  s_menu_browser->iseveningcommute = !s_menu_browser->iseveningcommute;
-  send_set_evening_commute_app_message(s_menu_browser);
-  setup_evening_commute_text();
-}
-
-static void click_config_provider(void *context) {
-  // Register the ClickHandlers
-  window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
-  window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
-  window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
-}
-
-void window_load(Window *window)
+static void setup_commute_text()
 {
-  Layer *window_layer = window_get_root_layer(window);
+  Layer *window_layer = window_get_root_layer(s_settings_window);
   GRect bounds = layer_get_frame(window_layer);
 
   GPoint origin = bounds.origin;
@@ -192,6 +169,45 @@ void window_load(Window *window)
   bottom_bounds.size = segment_size;
   s_text_evening_commute = create_textlayer(bottom_bounds, window_layer);
   setup_evening_commute_text();
+}
+
+static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
+  printf("up clicked");
+  s_menu_browser->ismorningcommute = !s_menu_browser->ismorningcommute;
+  send_set_morning_commute_app_message(s_menu_browser);
+  setup_morning_commute_text();
+}
+
+static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
+  printf("select clicked");
+  s_menu_browser->isfavorite = !s_menu_browser->isfavorite;
+  send_set_favorites_app_message(s_menu_browser);
+  setup_favorites_text();
+}
+
+static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
+  printf("down clicked");
+  s_menu_browser->iseveningcommute = !s_menu_browser->iseveningcommute;
+  send_set_evening_commute_app_message(s_menu_browser);
+  setup_evening_commute_text();
+}
+
+static void click_config_provider(void *context) {
+  // Register the ClickHandlers
+  window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
+  window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
+  window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
+}
+
+void window_load(Window *window)
+{
+  #ifdef PBL_COLOR
+    window_colorize(window);
+  #endif
+  TextLayer *text_layer_loading = get_text_layer_loading(window);
+
+  Layer *window_layer = window_get_root_layer(window);
+  layer_add_child(window_layer, text_layer_get_layer(text_layer_loading));
 }
 
 TextLayer *create_textlayer(GRect bounds, Layer *window_layer)

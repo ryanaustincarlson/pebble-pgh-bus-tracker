@@ -276,6 +276,7 @@ Pebble.addEventListener('appmessage',
     {
       console.log('getting commute...');
       getCommute.handleRequest(should_init);
+
     }
     else if (requestType == 'getsaveddata')
     {

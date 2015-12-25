@@ -6,6 +6,7 @@
 #include "app_message_utils.h"
 
 #include "settings_actionbar.h"
+#include "shared_ui.h"
 
 /*
  * CONSTANTS / STATIC VARS
@@ -26,7 +27,6 @@ static void selected_index_monitor(void *data);
 static MenuBrowser **s_menu_browsers = NULL;
 static int s_browser_index;
 
-static TextLayer *s_text_layer_loading = NULL;
 static TextLayer *s_text_layer_noresults = NULL;
 
 // it'd be nice if these are all in a struct or something...
@@ -132,24 +132,6 @@ void setup_text_layer_noresults(Window *window)
   strcat(message, end);
   text_layer_set_text(s_text_layer_noresults, message);
   free(message);
-}
-
-void setup_text_layer_loading(Window *window)
-{
-  if (!s_text_layer_loading)
-  {
-    Layer *window_layer = window_get_root_layer(window);
-    GRect bounds = layer_get_frame(window_layer);
-
-    s_text_layer_loading = text_layer_create(bounds);
-    text_layer_set_font(s_text_layer_loading, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
-    text_layer_set_text_alignment(s_text_layer_loading, GTextAlignmentCenter);
-    text_layer_set_text(s_text_layer_loading, "Loading...");
-    #ifdef PBL_COLOR
-      text_layer_set_text_color(s_text_layer_loading, get_color_normal());
-      // text_layer_set_background_color(s_text_layer_loading, get_color_normal());
-    #endif
-  }
 }
 
 void send_menu_app_message_helper(void *should_init_ptr)
@@ -706,7 +688,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     // }
     menu_layer_reload_data(browser->menu_layer);
 
-    layer_remove_from_parent(text_layer_get_layer(s_text_layer_loading));
+    layer_remove_from_parent(text_layer_get_layer(get_text_layer_loading(NULL)));
   }
 
   if (done)
@@ -874,10 +856,10 @@ static void window_load(Window *window)
   #ifdef PBL_COLOR
     window_colorize(window);
   #endif
-  setup_text_layer_loading(window);
+  TextLayer *text_layer_loading = get_text_layer_loading(window);
 
   Layer *window_layer = window_get_root_layer(window);
-  layer_add_child(window_layer, text_layer_get_layer(s_text_layer_loading));
+  layer_add_child(window_layer, text_layer_get_layer(text_layer_loading));
 }
 
 static void window_unload(Window *window)
@@ -956,7 +938,7 @@ static void window_unload(Window *window)
       free_browser_lists(backBrowser);
 
       layer_add_child(window_get_root_layer(backBrowser->menu_window),
-        text_layer_get_layer(s_text_layer_loading));
+        text_layer_get_layer(get_text_layer_loading(NULL)));
       send_menu_app_message(true, s_menu_browsers[s_browser_index]);
     }
   }
@@ -972,9 +954,8 @@ static void window_unload(Window *window)
     free(s_menu_browsers);
     s_menu_browsers = NULL;
 
-    text_layer_destroy(s_text_layer_loading);
+    destroy_text_layer_loading();
     text_layer_destroy(s_text_layer_noresults);
-    s_text_layer_loading = NULL;
     s_text_layer_noresults = NULL;
 
     app_message_deregister_callbacks();
