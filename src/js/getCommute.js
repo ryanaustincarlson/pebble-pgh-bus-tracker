@@ -71,7 +71,7 @@ var getCommute = {
     }, function(prediction) {
       var route = prediction.rt;
       var destination = prediction.des;
-      var title = '#' + route + ' to ' + destination;
+      var title = '#' + route + ' to ' + destination + ' @ ' + prediction.stpnm;
       return title;
     }, function(prediction) {
       return [prediction.rt, prediction.rtdir, prediction.stpid, prediction.stpnm].join('_');

@@ -6,9 +6,9 @@ var getSavedData = {
     var isPMCommute = PersistentEveningCommuteManager.isEveningCommute(route, direction, stopid, stopname);
 
     var dictionary = {
-      "KEY_IS_FAVORITE" : isFavorite,
-      "KEY_IS_MORNING_COMMUTE" : isAMCommute,
-      "KEY_IS_EVENING_COMMUTE" : isPMCommute
+      "KEY_IS_FAVORITE" : isFavorite ? 1 : 0,
+      "KEY_IS_MORNING_COMMUTE" : isAMCommute ? 1 : 0,
+      "KEY_IS_EVENING_COMMUTE" : isPMCommute ? 1 : 0
     };
 
     Pebble.sendAppMessage(dictionary,
