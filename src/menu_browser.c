@@ -989,10 +989,6 @@ void push_menu(char *msg, char *route, char *direction, char *stopid, char *stop
   }
 
   menu_browser_register_app_message_callbacks();
-  // app_message_register_inbox_received(inbox_received_callback);
-  // app_message_register_inbox_dropped(inbox_dropped_callback);
-  // app_message_register_outbox_failed(outbox_failed_callback);
-  // app_message_register_outbox_sent(outbox_sent_callback);
 
   MenuBrowser *browser = calloc(1, sizeof(MenuBrowser)); // s_menu_browsers[s_browser_index];
   initialize_browser(browser);

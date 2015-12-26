@@ -5,6 +5,7 @@ var DISPLAY_FEWER_ROUTES = false;
 // PersistentFavoritesManager.setFavorite('P1', 'INBOUND', '8161', 'East Liberty Station Stop C', true)
 
 var Dispatcher = {
+  appMessageSize : 1000,
   sendMenuSetupMessage : function(dataManager, msgType)
   {
     num_entries = DISPLAY_FEWER_ROUTES ? 6 : dataManager.savedData.titles.length;
@@ -188,6 +189,15 @@ Pebble.addEventListener('appmessage',
     }
 
     var payload = e.payload
+
+    var app_message_size = payload['150'];
+    if (app_message_size)
+    {
+      Dispatcher.appMessageSize = app_message_size;
+    }
+
+    console.log('app msg size: ' + Dispatcher.appMessageSize);
+
     // console.log("AppMessage received!");
     var requestType = payload['100'];
     // console.log('request type: ' + requestType);

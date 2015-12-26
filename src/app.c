@@ -1,6 +1,7 @@
 #include <pebble.h>
 #include "menu_browser.h"
 #include "app_colors.h"
+#include "app_message_utils.h"
 // #include "str_split.h"
 
 #define NUM_MENU_ICONS 2
@@ -123,6 +124,30 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   }
 }
 
+//
+// app messages
+//
+
+static void inbox_received_callback(DictionaryIterator *iterator, void *context)
+{
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Inbox Msg Received");
+}
+
+static void inbox_dropped_callback(AppMessageResult reason, void *context)
+{
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
+}
+
+static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context)
+{
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed!");
+}
+
+static void outbox_sent_callback(DictionaryIterator *iterator, void *context)
+{
+  APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
+}
+
 static void main_window_load(Window *window)
 {
   // Now we prepare to initialize the menu layer
@@ -160,9 +185,6 @@ static void main_window_load(Window *window)
 
   s_menu_icons_highlighted[0] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STAR_HIGHLIGHTED);
   s_menu_icons_highlighted[1] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BUS_HIGHLIGHTED);
-
-  // Open AppMessage
-  app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
 }
 
 static void main_window_unload(Window *window)
@@ -175,6 +197,12 @@ static void main_window_unload(Window *window)
     gbitmap_destroy(s_menu_icons[i]);
     gbitmap_destroy(s_menu_icons_highlighted[i]);
   }
+}
+
+void send_app_message_size_helper(void *context)
+{
+  printf("sending app msg size");
+  send_app_message_size_message();
 }
 
 static void init()
@@ -190,6 +218,16 @@ static void init()
 
   // Show the Window on the watch, with animated=true
   window_stack_push(s_main_window, true);
+
+  // Open AppMessage
+  app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
+
+  app_message_register_inbox_received(inbox_received_callback);
+  app_message_register_inbox_dropped(inbox_dropped_callback);
+  app_message_register_outbox_failed(outbox_failed_callback);
+  app_message_register_outbox_sent(outbox_sent_callback);
+
+  app_timer_register(1000, send_app_message_size_helper, NULL);
 }
 
 static void deinit()

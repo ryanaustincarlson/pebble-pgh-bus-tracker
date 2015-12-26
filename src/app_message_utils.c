@@ -68,6 +68,19 @@ void send_get_saved_data_app_message(MenuBrowser *browser)
   app_message_outbox_send();
 }
 
+void send_app_message_size_message()
+{
+  printf("inbox size: %d", (int)app_message_inbox_size_maximum());
+
+  // send app message size
+  DictionaryIterator *iter;
+  app_message_outbox_begin(&iter);
+
+  dict_write_uint32(iter, 150, app_message_inbox_size_maximum());
+  
+  app_message_outbox_send();
+}
+
 void send_menu_app_message(bool should_init, MenuBrowser *browser)
 {
   // MenuBrowser *browser = s_menu_browsers[s_browser_index];
