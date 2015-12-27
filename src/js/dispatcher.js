@@ -10,9 +10,21 @@ var Dispatcher = {
   {
     num_entries = DISPLAY_FEWER_ROUTES ? 6 : dataManager.savedData.titles.length;
 
+    var savedData = dataManager.savedData;
+    var titles = savedData.titles.join('|');
+    var subtitles = savedData.subtitles ? savedData.subtitles.join('|') : null;
+    var selectors = savedData.selectors.join('|');
+
     var dictionary = {
       "KEY_NUM_ENTRIES" : num_entries,
-      "KEY_MSG_TYPE" : msgType
+      "KEY_MSG_TYPE" : msgType,
+      "KEY_TITLES" : titles,
+      "KEY_SELECTORS" : selectors
+    };
+
+    if (subtitles)
+    {
+      dictionary["KEY_SUBTITLES"] = subtitles;
     }
 
     //
@@ -22,7 +34,7 @@ var Dispatcher = {
     Pebble.sendAppMessage(dictionary,
       function(e) {
         // console.log("for " + msgType + "... setup msg sent to pebble successfully!");
-        dataManager.handleRequest(false)
+        // dataManager.handleRequest(false)
       },
       function(e) {
         console.log("Error sending # entries to pebble :(");
@@ -37,19 +49,31 @@ var Dispatcher = {
     var selectors = savedData.selectors;
     var index = savedData.index;
 
-    var nextTitle = titles[index];
+    var titleString = titles.join('|');
+    var subtitleString = subtitles.join('|');
+    var selectorString = selectors.join('|');
+
+    var nextTitle = null;
     var nextSubtitle = null;
-    if (!!subtitles)
-    {
-      nextSubtitle = subtitles[index];
-    }
-    var nextSelector = selectors[index];
+    var nextSelector = null;
+
+    // if (savedData.index == 0)
+    // {
+      nextTitle = titleString;
+    // }
+    // else if (savedData.index == 1)
+    // {
+      nextSubtitle = subtitleString;
+    // }
+    // else if (savedData.index == 2)
+    // {
+      nextSelector = selectorString;
+    // }
+
+    var is_done = savedData.index == 1;
 
     savedData.index = index+1;
     dataManager.savedData = savedData;
-
-    var cutoff_early = DISPLAY_FEWER_ROUTES && index > 5;
-    var is_done = !nextTitle || cutoff_early;
 
     if (is_done)
     {
@@ -77,13 +101,8 @@ var Dispatcher = {
       dictionary["KEY_SELECTORS"] = nextSelector;
     }
 
-    //
-    // console.log("send next dict: " + JSON.stringify(dictionary));
-    //
-
     Pebble.sendAppMessage(dictionary,
       function(e) {
-        // console.log(displayRequestType + " sent to pebble successfully!");
         if (!is_done)
         {
           dataManager.handleRequest(false);
@@ -152,7 +171,7 @@ var Dispatcher = {
       if (!!responseText)
       {
         var data = JSON.parse(responseText);
-        console.log('data: ' + JSON.stringify(data));
+        // console.log('data: ' + JSON.stringify(data));
         Dispatcher.organizeAndSaveData(data, dataManager,
                                        extractDataFcn, sortDataFcn,
                                        extractTitleFcn, extractSubtitleFcn, extractSelectorFcn);

@@ -550,8 +550,8 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
 }
 
 /*
- * APP MESSAGES
- */
+* APP MESSAGES
+*/
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 {
@@ -562,11 +562,10 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 
   bool done = false;
   int num_entries = -1;
-  int item_index = -1;
-  char *title = NULL;
-  char *subtitle = NULL;
-  char *selector = NULL;
-  char *msg_type = NULL;
+  char *alltitles = NULL;
+  char *allsubtitles = NULL;
+  char *allselectors = NULL;
+  // char *msg_type = NULL;
 
   Tuple *t = dict_read_first(iterator);
   while (t != NULL)
@@ -578,88 +577,71 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         num_entries = (int)t->value->int32;
         break;
       }
-      case KEY_ITEM_INDEX:
-      {
-        item_index = (int)t->value->int32;
-        break;
-      }
       case KEY_TITLES:
       {
-        title = t->value->cstring;
+        alltitles = t->value->cstring;
         break;
       }
       case KEY_SELECTORS:
       {
-        selector = t->value->cstring;
+        allselectors = t->value->cstring;
         break;
       }
       case KEY_SUBTITLES:
       {
-        subtitle = t->value->cstring;
+        allsubtitles = t->value->cstring;
         break;
       }
-      case KEY_MSG_TYPE:
-      {
-        msg_type = t->value->cstring;
-        break;
-      }
-      case KEY_IS_FAVORITE:
-      {
-        browser->isfavorite = (int)t->value->int32 == 1;
-        printf("setting is favorite: %s", browser->isfavorite ? "yes!" : "no!");
-        break;
-      }
-      case KEY_IS_MORNING_COMMUTE:
-      {
-        browser->ismorningcommute = (int)t->value->int32 == 1;
-        printf("setting is morning commute: %s", browser->ismorningcommute ? "yes!" : "no!");
-        break;
-      }
-      case KEY_IS_EVENING_COMMUTE:
-      {
-        browser->iseveningcommute = (int)t->value->int32 == 1;
-        printf("setting is evening commute: %s", browser->iseveningcommute ? "yes!" : "no!");
-        break;
-      }
-    }
-
-    if (strcmp("done", t->value->cstring) == 0)
-    {
-      APP_LOG(APP_LOG_LEVEL_ERROR, "Done finding messages!");
-      done = true;
-      browser->loading_state = LOADING_DONE;
+      // case KEY_MSG_TYPE:
+      // {
+      //   msg_type = t->value->cstring;
+      //   break;
+      // }
     }
 
     t = dict_read_next(iterator);
   }
 
-  // we want to make sure we're creating space for entries
-  // in the proper browser
-  //
-  // this is mostly to protect against wonkiness if a user hits
-  // the back button before the first entry has loaded
-  if (num_entries > 0 && strcmp(msg_type, browser->msg) == 0)
+  printf("num entries: %d", num_entries);
+  if (num_entries > 0)
   {
+    browser->menu_num_entries = num_entries;
     browser->menu_titles = calloc(num_entries, sizeof(char *));
     browser->menu_selectors = calloc(num_entries, sizeof(char *));
     browser->menu_subtitles = calloc(num_entries, sizeof(char *));
-
     browser->menu_title_heights = calloc(num_entries, sizeof(int));
     browser->menu_subtitle_heights = calloc(num_entries, sizeof(int));
-  }
 
-  Window *window = browser->menu_window;
-  Layer *window_layer = window_get_root_layer(window);
+    Window *window = browser->menu_window;
+    Layer *window_layer = window_get_root_layer(window);
 
-  // if (browser->menu_num_entries > 0)
-  if (done)
-  {
+    char **titles = str_split(alltitles, '|');
+    char **subtitles = allsubtitles ? str_split(allsubtitles, '|') : NULL;
+    char **selectors = str_split(allselectors, '|');
+    for (int i=0; i<num_entries; i++)
+    {
+      char *title = titles[i];
+      browser->menu_titles[i] = strdup(title);
+      browser->menu_title_heights[i] = get_text_height(title, window_layer, FONT_KEY_GOTHIC_24_BOLD);
+
+      char *selector = selectors[i];
+      browser->menu_selectors[i] = strdup(selector);
+
+      browser->menu_subtitle_heights[i] = 0;
+      if (subtitles)
+      {
+        char *subtitle = subtitles[i];
+        browser->menu_subtitles[i] = strdup(subtitle);
+        browser->menu_subtitle_heights[i] = get_text_height(subtitle, window_layer, FONT_KEY_GOTHIC_24);
+      }
+    }
+
     if (!browser->menu_layer)
     {
       GRect bounds = layer_get_frame(window_layer);
 
       MenuLayer *menu_layer = menu_layer_create(bounds);
-      s_menu_browsers[s_browser_index]->menu_layer = menu_layer;
+      browser->menu_layer = menu_layer;
 
       menu_layer_set_callbacks(menu_layer, NULL, (MenuLayerCallbacks){
         .get_num_sections = menu_get_num_sections_callback,
@@ -676,99 +658,225 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       menu_layer_set_click_config_onto_window(menu_layer, window);
 
       #ifdef PBL_COLOR
-        menu_layer_colorize(menu_layer);
+      menu_layer_colorize(menu_layer);
       #endif
 
       layer_add_child(window_layer, menu_layer_get_layer(menu_layer));
     }
-    // printf("scroll timer active? %s", s_horiz_scroll_timer_active ? "YES" : "NO");
-    // if (s_horiz_scroll_timer_active)
-    // {
-    //   s_horiz_scroll_menu_reloading_to_scroll = true;
-    // }
     menu_layer_reload_data(browser->menu_layer);
 
     layer_remove_from_parent(text_layer_get_layer(get_text_layer_loading(NULL)));
   }
-
-  if (done)
-  {
-    printf("Done loading messages!");
-    if (browser->menu_num_entries == 0)
-    {
-      setup_text_layer_noresults(window);
-      layer_remove_child_layers(window_layer);
-      layer_add_child(window_layer, text_layer_get_layer(s_text_layer_noresults));
-    }
-  }
-  else // not done - keep going
-  {
-    MenuBrowser *onscreen_browser = browser;
-
-    // if there's an errant message from the previous screen,
-    // we need to catch it and place it in the CORRECT browser
-    if (strcmp(msg_type, browser->msg) != 0)
-    {
-      printf("LOADING was interrupted w/ msg_type = %s, browser msg = %s",
-             msg_type, browser->msg ? browser->msg : "null");
-      browser = NULL;
-      for (int msgIdx=0; msgIdx<s_browser_index; msgIdx++)
-      {
-        MenuBrowser *tmp_browser = s_menu_browsers[msgIdx];
-        if (strcmp(msg_type, tmp_browser->msg) == 0)
-        {
-          printf("FOUND replacement at index = %d", msgIdx);
-          browser = tmp_browser;
-          break;
-        }
-      }
-    }
-
-    if (item_index != -1 && browser != NULL)
-    {
-      browser->menu_titles[item_index] = strdup(title);
-      browser->menu_selectors[item_index] = strdup(selector);
-
-      browser->menu_title_heights[item_index] = get_text_height(title, window_layer, FONT_KEY_GOTHIC_24_BOLD);
-      browser->menu_subtitle_heights[item_index] = 0;
-
-      if (subtitle != NULL)
-      {
-        browser->menu_subtitles[item_index] = strdup(subtitle);
-        browser->menu_subtitle_heights[item_index] = get_text_height(subtitle, window_layer, FONT_KEY_GOTHIC_24);
-      }
-
-      if (item_index+1 > browser->menu_num_entries)
-      {
-        browser->menu_num_entries = item_index+1;
-      }
-      if (item_index == 0)
-      {
-        s_horiz_scroll_timer_timestamp = get_timestamp();
-
-        if (s_browser_index == 0)
-        {
-          s_horiz_scroll_timer_active = true;
-          s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL); // FIXME
-        }
-
-        // printf("calling initiate_horiz_scroll_timer");
-        // initiate_horiz_scroll_timer("inbox_received_callback");
-      }
-
-      printf("idx: %d, title: %s, subt: %s, sel: %s",
-        item_index,
-        browser->menu_titles[item_index] ? browser->menu_titles[item_index] : "nil",
-        browser->menu_subtitles[item_index] ? browser->menu_subtitles[item_index] : "nil",
-        browser->menu_selectors[item_index] ? browser->menu_selectors[item_index] : "nil");
-    }
-
-    if (onscreen_browser == browser)
-    {
-      // send_menu_app_message(false); // TODO 2015-09-26: consider removing
-    }
-  }
 }
+
+// static void inbox_received_callback(DictionaryIterator *iterator, void *context)
+// {
+//   // APP_LOG(APP_LOG_LEVEL_ERROR, "Inbox Received");
+//
+//   MenuBrowser *browser = s_menu_browsers[s_browser_index];
+//   browser->loading_state = LOADING_STARTED;
+//
+//   bool done = false;
+//   int num_entries = -1;
+//   int item_index = -1;
+//   char *title = NULL;
+//   char *subtitle = NULL;
+//   char *selector = NULL;
+//   char *msg_type = NULL;
+//
+//   Tuple *t = dict_read_first(iterator);
+//   while (t != NULL)
+//   {
+//     switch(t->key)
+//     {
+//       case KEY_NUM_ENTRIES:
+//       {
+//         num_entries = (int)t->value->int32;
+//         break;
+//       }
+//       case KEY_ITEM_INDEX:
+//       {
+//         item_index = (int)t->value->int32;
+//         break;
+//       }
+//       case KEY_TITLES:
+//       {
+//         title = t->value->cstring;
+//         break;
+//       }
+//       case KEY_SELECTORS:
+//       {
+//         selector = t->value->cstring;
+//         printf("selector: %s", selector);
+//         printf("selector size: %d", strlen(selector));
+//         break;
+//       }
+//       case KEY_SUBTITLES:
+//       {
+//         subtitle = t->value->cstring;
+//         break;
+//       }
+//       case KEY_MSG_TYPE:
+//       {
+//         msg_type = t->value->cstring;
+//         break;
+//       }
+//       case KEY_IS_FAVORITE:
+//       {
+//         browser->isfavorite = (int)t->value->int32 == 1;
+//         printf("setting is favorite: %s", browser->isfavorite ? "yes!" : "no!");
+//         break;
+//       }
+//       case KEY_IS_MORNING_COMMUTE:
+//       {
+//         browser->ismorningcommute = (int)t->value->int32 == 1;
+//         printf("setting is morning commute: %s", browser->ismorningcommute ? "yes!" : "no!");
+//         break;
+//       }
+//       case KEY_IS_EVENING_COMMUTE:
+//       {
+//         browser->iseveningcommute = (int)t->value->int32 == 1;
+//         printf("setting is evening commute: %s", browser->iseveningcommute ? "yes!" : "no!");
+//         break;
+//       }
+//     }
+//
+//     if (strcmp("done", t->value->cstring) == 0)
+//     {
+//       APP_LOG(APP_LOG_LEVEL_ERROR, "Done finding messages!");
+//       done = true;
+//       browser->loading_state = LOADING_DONE;
+//     }
+//
+//     t = dict_read_next(iterator);
+//   }
+//
+//   // we want to make sure we're creating space for entries
+//   // in the proper browser
+//   //
+//   // this is mostly to protect against wonkiness if a user hits
+//   // the back button before the first entry has loaded
+//   if (num_entries > 0 && strcmp(msg_type, browser->msg) == 0)
+//   {
+//     browser->menu_titles = calloc(num_entries, sizeof(char *));
+//     browser->menu_selectors = calloc(num_entries, sizeof(char *));
+//     browser->menu_subtitles = calloc(num_entries, sizeof(char *));
+//
+//     browser->menu_title_heights = calloc(num_entries, sizeof(int));
+//     browser->menu_subtitle_heights = calloc(num_entries, sizeof(int));
+//   }
+//
+//   Window *window = browser->menu_window;
+//   Layer *window_layer = window_get_root_layer(window);
+//
+//   // if (browser->menu_num_entries > 0)
+//   if (done)
+//   {
+//     if (!browser->menu_layer)
+//     {
+//       GRect bounds = layer_get_frame(window_layer);
+//
+//       MenuLayer *menu_layer = menu_layer_create(bounds);
+//       s_menu_browsers[s_browser_index]->menu_layer = menu_layer;
+//
+//       menu_layer_set_callbacks(menu_layer, NULL, (MenuLayerCallbacks){
+//         .get_num_sections = menu_get_num_sections_callback,
+//         .get_num_rows = menu_get_num_rows_callback,
+//         .get_header_height = menu_get_header_height_callback,
+//         .get_cell_height = menu_get_cell_height_callback,
+//         .draw_header = menu_draw_header_callback,
+//         .draw_row = menu_draw_row_callback,
+//         .select_click = menu_select_callback,
+//         .select_long_click = menu_select_long_callback,
+//         .selection_changed = menu_selection_changed_callback
+//       });
+//
+//       menu_layer_set_click_config_onto_window(menu_layer, window);
+//
+//       #ifdef PBL_COLOR
+//         menu_layer_colorize(menu_layer);
+//       #endif
+//
+//       layer_add_child(window_layer, menu_layer_get_layer(menu_layer));
+//     }
+//     menu_layer_reload_data(browser->menu_layer);
+//
+//     layer_remove_from_parent(text_layer_get_layer(get_text_layer_loading(NULL)));
+//   }
+//
+//   if (done)
+//   {
+//     printf("Done loading messages!");
+//     if (browser->menu_num_entries == 0)
+//     {
+//       setup_text_layer_noresults(window);
+//       layer_remove_child_layers(window_layer);
+//       layer_add_child(window_layer, text_layer_get_layer(s_text_layer_noresults));
+//     }
+//   }
+//   else // not done - keep going
+//   {
+//     MenuBrowser *onscreen_browser = browser;
+//
+//     // if there's an errant message from the previous screen,
+//     // we need to catch it and place it in the CORRECT browser
+//     if (strcmp(msg_type, browser->msg) != 0)
+//     {
+//       printf("LOADING was interrupted w/ msg_type = %s, browser msg = %s",
+//              msg_type, browser->msg ? browser->msg : "null");
+//       browser = NULL;
+//       for (int msgIdx=0; msgIdx<s_browser_index; msgIdx++)
+//       {
+//         MenuBrowser *tmp_browser = s_menu_browsers[msgIdx];
+//         if (strcmp(msg_type, tmp_browser->msg) == 0)
+//         {
+//           printf("FOUND replacement at index = %d", msgIdx);
+//           browser = tmp_browser;
+//           break;
+//         }
+//       }
+//     }
+//
+//     if (item_index != -1 && browser != NULL)
+//     {
+//       browser->menu_titles[item_index] = strdup(title);
+//       browser->menu_selectors[item_index] = strdup(selector);
+//
+//       browser->menu_title_heights[item_index] = get_text_height(title, window_layer, FONT_KEY_GOTHIC_24_BOLD);
+//       browser->menu_subtitle_heights[item_index] = 0;
+//
+//       if (subtitle != NULL)
+//       {
+//         browser->menu_subtitles[item_index] = strdup(subtitle);
+//         browser->menu_subtitle_heights[item_index] = get_text_height(subtitle, window_layer, FONT_KEY_GOTHIC_24);
+//       }
+//
+//       if (item_index+1 > browser->menu_num_entries)
+//       {
+//         browser->menu_num_entries = item_index+1;
+//       }
+//       if (item_index == 0)
+//       {
+//         s_horiz_scroll_timer_timestamp = get_timestamp();
+//
+//         if (s_browser_index == 0)
+//         {
+//           s_horiz_scroll_timer_active = true;
+//           s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL); // FIXME
+//         }
+//
+//         // printf("calling initiate_horiz_scroll_timer");
+//         // initiate_horiz_scroll_timer("inbox_received_callback");
+//       }
+//
+//       printf("idx: %d, title: %s, subt: %s, sel: %s",
+//         item_index,
+//         browser->menu_titles[item_index] ? browser->menu_titles[item_index] : "nil",
+//         browser->menu_subtitles[item_index] ? browser->menu_subtitles[item_index] : "nil",
+//         browser->menu_selectors[item_index] ? browser->menu_selectors[item_index] : "nil");
+//     }
+//   }
+// }
 
 static void inbox_dropped_callback(AppMessageResult reason, void *context)
 {
