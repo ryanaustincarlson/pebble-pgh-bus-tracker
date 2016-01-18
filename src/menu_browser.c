@@ -134,7 +134,7 @@ void setup_text_layer_noresults(Window *window)
   free(message);
 }
 
-void send_menu_app_message_helper(void *should_init_ptr)
+void send_menu_app_message_helper(void *data)
 {
   s_timer_fired = true;
   printf("in menu app msg helper");
@@ -143,11 +143,9 @@ void send_menu_app_message_helper(void *should_init_ptr)
   if (s_timer_browser_index == s_browser_index)
   {
     printf("timer browser idx: %d, browser_index: %d", s_timer_browser_index, s_browser_index);
-    bool should_init = (bool)should_init_ptr;
     printf("sending menu app msg");
-    send_menu_app_message(should_init, s_menu_browsers[s_browser_index]);
+    send_menu_app_message(s_menu_browsers[s_browser_index]);
   }
-  printf("ahhhh");
 }
 
 /*
@@ -555,7 +553,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 {
-  // APP_LOG(APP_LOG_LEVEL_ERROR, "Inbox Received");
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Inbox Received");
 
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
   browser->loading_state = LOADING_STARTED;
@@ -663,7 +661,9 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 
   if (done)
   {
-    // printf("num entries: %d", num_entries);
+    Window *window = browser->menu_window;
+    Layer *window_layer = window_get_root_layer(window);
+    printf("num entries: %d", num_entries);
     if (num_entries > 0)
     {
       browser->menu_num_entries = num_entries;
@@ -672,9 +672,6 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       browser->menu_subtitles = calloc(num_entries, sizeof(char *));
       browser->menu_title_heights = calloc(num_entries, sizeof(int));
       browser->menu_subtitle_heights = calloc(num_entries, sizeof(int));
-
-      Window *window = browser->menu_window;
-      Layer *window_layer = window_get_root_layer(window);
 
       char **titles = str_split(browser->menu_titlecat, '|');
       char **subtitles = browser->menu_subtitlecat ? str_split(browser->menu_subtitlecat, '|') : NULL;
@@ -698,11 +695,14 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       }
 
       free(browser->menu_titlecat);
+      browser->menu_titlecat = NULL;
       if (browser->menu_subtitlecat)
       {
         free(browser->menu_subtitlecat);
       }
+      browser->menu_subtitlecat = NULL;
       free(browser->menu_selectorcat);
+      browser->menu_selectorcat = NULL;
 
       if (!browser->menu_layer)
       {
@@ -734,6 +734,12 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       menu_layer_reload_data(browser->menu_layer);
 
       layer_remove_from_parent(text_layer_get_layer(get_text_layer_loading(NULL)));
+    }
+    else
+    {
+      setup_text_layer_noresults(window);
+      layer_remove_child_layers(window_layer);
+      layer_add_child(window_layer, text_layer_get_layer(s_text_layer_noresults));
     }
   }
 }
@@ -804,6 +810,7 @@ static void free_browser_lists(MenuBrowser *browser)
       free(browser->menu_subtitles[i]);
     }
   }
+
   if (browser->menu_titles != NULL)
   {
     free(browser->menu_titles);
@@ -833,6 +840,38 @@ static void window_load(Window *window)
 
   Layer *window_layer = window_get_root_layer(window);
   layer_add_child(window_layer, text_layer_get_layer(text_layer_loading));
+}
+
+void reload_menu_browser_if_necessary()
+{
+  // the browser that'll soon be on the top of the stack
+  MenuBrowser *backBrowser = s_menu_browsers[s_browser_index];
+  if (backBrowser->loading_state != LOADING_DONE)
+  {
+    printf("back browser not finished loading!");
+    menu_layer_reload_data(backBrowser->menu_layer);
+
+    s_timer_browser_index = s_browser_index;
+    s_timer = app_timer_register(
+      250,
+      send_menu_app_message_helper,
+      NULL);
+  }
+  printf("msg: %s", backBrowser->msg ? backBrowser->msg : "NULL");
+  if (strcmp(backBrowser->msg, MSG_FAVORITES) == 0 || strcmp(backBrowser->msg, MSG_COMMUTE) == 0)
+  {
+    printf("returning to favorites / commute menu!");
+    free_browser_lists(backBrowser);
+
+    layer_add_child(window_get_root_layer(backBrowser->menu_window),
+      text_layer_get_layer(get_text_layer_loading(NULL)));
+
+    s_timer_browser_index = s_browser_index;
+    s_timer = app_timer_register(
+      250,
+      send_menu_app_message_helper,
+      NULL);
+  }
 }
 
 static void window_unload(Window *window)
@@ -895,25 +934,26 @@ static void window_unload(Window *window)
   if (s_browser_index > 0)
   {
     s_browser_index--;
+    reload_menu_browser_if_necessary();
 
-    // the browser that'll soon be on the top of the stack
-    MenuBrowser *backBrowser = s_menu_browsers[s_browser_index];
-    if (backBrowser->loading_state != LOADING_DONE)
-    {
-      printf("back browser not finished loading!");
-      menu_layer_reload_data(backBrowser->menu_layer);
-      bool should_init = backBrowser->loading_state == LOADING_NOT_STARTED;
-      send_menu_app_message(should_init, s_menu_browsers[s_browser_index]);
-    }
-    if (strcmp(backBrowser->msg, MSG_FAVORITES) == 0)
-    {
-      printf("returning to favorites menu!");
-      free_browser_lists(backBrowser);
-
-      layer_add_child(window_get_root_layer(backBrowser->menu_window),
-        text_layer_get_layer(get_text_layer_loading(NULL)));
-      send_menu_app_message(true, s_menu_browsers[s_browser_index]);
-    }
+    // // the browser that'll soon be on the top of the stack
+    // MenuBrowser *backBrowser = s_menu_browsers[s_browser_index];
+    // if (backBrowser->loading_state != LOADING_DONE)
+    // {
+    //   printf("back browser not finished loading!");
+    //   menu_layer_reload_data(backBrowser->menu_layer);
+    //   send_menu_app_message(s_menu_browsers[s_browser_index]);
+    // }
+    // printf("msg: %s", backBrowser->msg ? backBrowser->msg : "NULL");
+    // if (strcmp(backBrowser->msg, MSG_FAVORITES) == 0)
+    // {
+    //   printf("returning to favorites / commute menu!");
+    //   free_browser_lists(backBrowser);
+    //
+    //   layer_add_child(window_get_root_layer(backBrowser->menu_window),
+    //     text_layer_get_layer(get_text_layer_loading(NULL)));
+    //   send_menu_app_message(s_menu_browsers[s_browser_index]);
+    // }
   }
   else
   {
@@ -1018,7 +1058,7 @@ void push_menu(char *msg, char *route, char *direction, char *stopid, char *stop
   // send_menu_app_message(true); // FIXME
   s_timer_browser_index = s_browser_index;
   s_timer = app_timer_register(
-    500,
+    250,
     send_menu_app_message_helper,
-    (void *)true);
+    NULL);
 }

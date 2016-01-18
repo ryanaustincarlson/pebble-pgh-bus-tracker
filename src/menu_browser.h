@@ -17,7 +17,7 @@ typedef struct
   char *menu_titlecat;
   char *menu_subtitlecat;
   char *menu_selectorcat;
-  
+
   int menu_num_entries;
 
   int *menu_title_heights;
@@ -44,5 +44,6 @@ void push_menu(char *msg,
     char *extra);
 
 void menu_browser_register_app_message_callbacks();
+void reload_menu_browser_if_necessary();
 
 #endif // _MENU_BROWSER_H

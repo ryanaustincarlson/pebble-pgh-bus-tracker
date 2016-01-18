@@ -257,6 +257,7 @@ void window_unload(Window *window)
 
   app_message_deregister_callbacks();
   menu_browser_register_app_message_callbacks();
+  reload_menu_browser_if_necessary();
 }
 
 void push_settings_actionbar(char *route, char *direction, char *stopid, char *stopname)
