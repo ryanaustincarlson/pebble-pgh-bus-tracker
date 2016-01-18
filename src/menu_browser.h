@@ -12,6 +12,12 @@ typedef struct
   char **menu_titles;
   char **menu_subtitles;
   char **menu_selectors; // what to send back to the phone
+
+  // *menu_*cat are concatentated items of a list, in string form
+  char *menu_titlecat;
+  char *menu_subtitlecat;
+  char *menu_selectorcat;
+  
   int menu_num_entries;
 
   int *menu_title_heights;

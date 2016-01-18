@@ -41,17 +41,10 @@ var getFavorites = {
 
     Dispatcher.sendMenuSetupMessage(getFavorites, "getfavorites");
   },
-  handleRequest : function(should_init)
+  handleRequest : function()
   {
-    if (should_init)
-    {
-      getFavorites.savedData = null;
-      getFavorites.get();
-    }
-    else
-    {
-      Dispatcher.sendNextItem(getFavorites, "getfavorites");
-    }
+    getFavorites.savedData = null;
+    getFavorites.get();
   }
 }
 

@@ -61,39 +61,9 @@ var getPredictions = {
       return [prediction.rt, prediction.rtdir, prediction.stpid, prediction.stpnm].join('_');
     });
   },
-  handleRequest : function(should_init, route, direction, stopid, stopname)
+  handleRequest : function(route, direction, stopid, stopname)
   {
-    if (should_init)
-    {
-      getPredictions.savedData = null;
-
-      isfavorite = PersistentFavoritesManager.isFavorite(route, direction, stopid, stopname);
-      ismorningcommute = PersistentMorningCommuteManager.isMorningCommute(route, direction, stopid, stopname);
-      iseveningcommute = PersistentEveningCommuteManager.isEveningCommute(route, direction, stopid, stopname);
-      var dictionary = {
-        "KEY_IS_FAVORITE" : isfavorite ? 1 : 0,
-        "KEY_IS_MORNING_COMMUTE" : ismorningcommute ? 1 : 0,
-        "KEY_IS_EVENING_COMMUTE" : iseveningcommute ? 1 : 0,
-        "KEY_MSG_TYPE" : 'getpredictions'
-      };
-
-      Pebble.sendAppMessage(dictionary,
-        function(e) {
-          // success
-          getPredictions.handleRequest(false, route, direction, stopid, stopname)
-        },
-        function(e) {
-          // failure - do nothing?
-        });
-    }
-    else if (getPredictions.savedData == null)
-    {
-      getPredictions.get(route, direction, stopid);
-    }
-    else
-    {
-      Dispatcher.sendNextItem(getPredictions, 'getpredictions');
-    }
+    getPredictions.get(route, direction, stopid);
   }
 };
 
@@ -129,7 +99,7 @@ var getPredictions = {
 // };
 
 /* predictions coming from the *favorites* menu */
-var handlePredictionsRequest_Favorites = function(should_init, selector)
+var handlePredictionsRequest_Favorites = function(selector)
 {
   var fields = selector.split(PersistentDataManagerUtils.separator);
   var route = fields[0];
@@ -139,5 +109,5 @@ var handlePredictionsRequest_Favorites = function(should_init, selector)
 
   console.log('predictions request') // TODO: log what i'm sending to predictions handler
 
-  getPredictions.handleRequest(should_init, route, direction, stopid, stopname);
+  getPredictions.handleRequest(route, direction, stopid, stopname);
 };

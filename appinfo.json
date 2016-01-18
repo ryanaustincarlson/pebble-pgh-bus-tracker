@@ -9,7 +9,8 @@
         "KEY_IS_FAVORITE": 6,
         "KEY_IS_MORNING_COMMUTE": 7,
         "KEY_IS_EVENING_COMMUTE": 8,
-        "KEY_EXTRA_DATA": 9
+        "KEY_EXTRA_DATA": 9,
+        "KEY_DONE": 50
     },
     "capabilities": [
         "location"

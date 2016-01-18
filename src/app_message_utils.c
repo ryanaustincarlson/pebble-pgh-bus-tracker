@@ -7,6 +7,10 @@
 
 void setup_app_message_dictionary(DictionaryIterator *iter, MenuBrowser *browser)
 {
+  // send along the max inbox size
+  // (later: figure out the CURRENT inbox size rather than the )
+  dict_write_uint32(iter, 150, app_message_inbox_size_maximum());
+
   if (browser->route != NULL)
   {
     dict_write_cstring(iter, 101, browser->route);
@@ -29,6 +33,7 @@ void setup_app_message_dictionary(DictionaryIterator *iter, MenuBrowser *browser
   }
 }
 
+// this is a helper for the "set favorites" and "set commute" functions
 void send_set_property_app_message(MenuBrowser *browser, char *keyword, bool shouldAdd)
 {
   DictionaryIterator *iter;
@@ -65,19 +70,6 @@ void send_get_saved_data_app_message(MenuBrowser *browser)
   dict_write_cstring(iter, 100, "getsaveddata");
   setup_app_message_dictionary(iter, browser);
 
-  app_message_outbox_send();
-}
-
-void send_app_message_size_message()
-{
-  printf("inbox size: %d", (int)app_message_inbox_size_maximum());
-
-  // send app message size
-  DictionaryIterator *iter;
-  app_message_outbox_begin(&iter);
-
-  dict_write_uint32(iter, 150, app_message_inbox_size_maximum());
-  
   app_message_outbox_send();
 }
 

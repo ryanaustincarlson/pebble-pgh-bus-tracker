@@ -43,17 +43,10 @@ var getNearbyRoutes = {
 
     },
 
-    handleRequest : function(should_init, stopid)
+    handleRequest : function(stopid)
     {
-        if (should_init)
-        {
-            getNearbyRoutes.savedData = null;
-            getNearbyRoutes.get(stopid);
-        }
-        else
-        {
-            getNearbyRoutes.sendNextRoute();
-        }
+      getNearbyRoutes.savedData = null;
+      getNearbyRoutes.get(stopid);
     }
 };
 

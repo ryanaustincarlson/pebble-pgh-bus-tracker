@@ -22,16 +22,9 @@ var getStops = {
       return stop.stpid;
     });
   },
-  handleRequest : function(should_init, route, direction)
+  handleRequest : function(route, direction)
   {
-    if (should_init)
-    {
-      getStops.savedData = null;
-      getStops.get(route, direction);
-    }
-    else
-    {
-      Dispatcher.sendNextItem(getStops, 'getstops');
-    }
+    getStops.savedData = null;
+    getStops.get(route, direction);
   }
 };

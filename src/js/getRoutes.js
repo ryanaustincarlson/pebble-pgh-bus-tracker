@@ -19,9 +19,12 @@ var getRoutes = {
         // one of two formats if NaN
         // letterFirst: <letter><number>
         // numberFirst: <number><letter>
-        // 
+        //
         // letters are only ever one character long
         // numbers can be multiple chars
+        //
+        // `substr` takes two args, a start index and a length
+        // note that this is NOT like `substring` which is start idx and finish idx
         var aIsLetterFirst = isNaN(a.substr(0,1));
         var bIsLetterFirst = isNaN(b.substr(0,1));
 
@@ -94,27 +97,20 @@ var getRoutes = {
       return route.rt;
     });
   },
-  handleRequest : function(should_init)
+  handleRequest : function()
   {
-    if (should_init)
+    if (getRoutes.savedData == null)
     {
-      if (getRoutes.savedData == null)
-      {
-        getRoutes.get();
-      }
-      else
-      {
-        /* else, this is not the first time we're requesting routes
-        * so there's really no need to make a network request, just
-        * reset the index and re-send the data!
-        */       
-        getRoutes.savedData.index = 0;
-        Dispatcher.sendMenuSetupMessage(getRoutes, "getroutes");
-      }
+      getRoutes.get();
     }
     else
     {
-      Dispatcher.sendNextItem(getRoutes, 'getroutes');
+      /* else, this is not the first time we're requesting routes
+      * so there's really no need to make a network request, just
+      * reset the index and re-send the data!
+      */
+      getRoutes.savedData.index = 0;
+      Dispatcher.sendMenuSetupMessage(getRoutes, "getroutes");
     }
   }
 };

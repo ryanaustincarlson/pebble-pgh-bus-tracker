@@ -32,8 +32,8 @@ var getNearbyStops = {
             distances = [];
 
             var locationOptions = {
-              enableHighAccuracy: true, 
-              maximumAge: 10000, 
+              enableHighAccuracy: true,
+              maximumAge: 10000,
               timeout: 10000
             };
 
@@ -88,17 +88,10 @@ var getNearbyStops = {
         });
     },
 
-    handleRequest : function(should_init)
+    handleRequest : function()
     {
-        if (should_init)
-        {
-            getNearbyStops.savedData = null;
-            getNearbyStops.get();
-        }
-        else
-        {
-            Dispatcher.sendNextItem(getNearbyStops, 'getnearbystops');
-        }
+      getNearbyStops.savedData = null;
+      getNearbyStops.get();
     }
 };
 
@@ -114,4 +107,3 @@ var getNearbyStops = {
 //     getNearbyStops.sendNextStop();
 //   }
 // };
-

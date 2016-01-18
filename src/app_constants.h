@@ -10,6 +10,7 @@
 #define KEY_IS_MORNING_COMMUTE 7
 #define KEY_IS_EVENING_COMMUTE 8
 #define KEY_EXTRA_DATA 9
+#define KEY_DONE 50
 
 #define MSG_ROUTES "getroutes"
 #define MSG_DIRECTIONS "getdirections"

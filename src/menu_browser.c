@@ -461,7 +461,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   char *selector = browser->menu_selectors[cell_index->row];
   char *new_msg = NULL;
   char **split = NULL; // in case we need to split things... need to free afterward
-  printf("starting strcmps w/ msg: %s", msg);
+  printf("starting strcmps w/ msg: %s", msg ? msg : "NULL");
 
   if (strcmp(msg, MSG_ROUTES) == 0)
   {
@@ -493,7 +493,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   {
     new_msg = MSG_PREDICTIONS;
 
-    printf("selector: %s", selector);
+    printf("selector: %s", selector ? selector : "NULL");
     split = str_split(selector, '_');
     printf("done splitting!");
     if (split != NULL)
@@ -592,291 +592,151 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         allsubtitles = t->value->cstring;
         break;
       }
-      // case KEY_MSG_TYPE:
-      // {
-      //   msg_type = t->value->cstring;
-      //   break;
-      // }
+      case KEY_DONE:
+      {
+        done = true;
+        break;
+      }
     }
-
     t = dict_read_next(iterator);
   }
 
-  printf("num entries: %d", num_entries);
-  if (num_entries > 0)
+  if (done)
   {
-    browser->menu_num_entries = num_entries;
-    browser->menu_titles = calloc(num_entries, sizeof(char *));
-    browser->menu_selectors = calloc(num_entries, sizeof(char *));
-    browser->menu_subtitles = calloc(num_entries, sizeof(char *));
-    browser->menu_title_heights = calloc(num_entries, sizeof(int));
-    browser->menu_subtitle_heights = calloc(num_entries, sizeof(int));
+    browser->loading_state = LOADING_DONE;
+  }
 
-    Window *window = browser->menu_window;
-    Layer *window_layer = window_get_root_layer(window);
-
-    char **titles = str_split(alltitles, '|');
-    char **subtitles = allsubtitles ? str_split(allsubtitles, '|') : NULL;
-    char **selectors = str_split(allselectors, '|');
-    for (int i=0; i<num_entries; i++)
+  if (!done)
+  {
+    if (alltitles)
     {
-      char *title = titles[i];
-      browser->menu_titles[i] = strdup(title);
-      browser->menu_title_heights[i] = get_text_height(title, window_layer, FONT_KEY_GOTHIC_24_BOLD);
-
-      char *selector = selectors[i];
-      browser->menu_selectors[i] = strdup(selector);
-
-      browser->menu_subtitle_heights[i] = 0;
-      if (subtitles)
+      if (browser->menu_titlecat == NULL)
       {
-        char *subtitle = subtitles[i];
-        browser->menu_subtitles[i] = strdup(subtitle);
-        browser->menu_subtitle_heights[i] = get_text_height(subtitle, window_layer, FONT_KEY_GOTHIC_24);
+        browser->menu_titlecat = strdup(alltitles);
+      }
+      else
+      {
+        char *titlecat = calloc(strlen(browser->menu_titlecat) + strlen(alltitles) + 1, sizeof(char));
+        strcat(titlecat, browser->menu_titlecat);
+        strcat(titlecat, alltitles);
+        free(browser->menu_titlecat);
+        browser->menu_titlecat = titlecat;
       }
     }
 
-    if (!browser->menu_layer)
+    if (allsubtitles)
     {
-      GRect bounds = layer_get_frame(window_layer);
-
-      MenuLayer *menu_layer = menu_layer_create(bounds);
-      browser->menu_layer = menu_layer;
-
-      menu_layer_set_callbacks(menu_layer, NULL, (MenuLayerCallbacks){
-        .get_num_sections = menu_get_num_sections_callback,
-        .get_num_rows = menu_get_num_rows_callback,
-        .get_header_height = menu_get_header_height_callback,
-        .get_cell_height = menu_get_cell_height_callback,
-        .draw_header = menu_draw_header_callback,
-        .draw_row = menu_draw_row_callback,
-        .select_click = menu_select_callback,
-        .select_long_click = menu_select_long_callback,
-        .selection_changed = menu_selection_changed_callback
-      });
-
-      menu_layer_set_click_config_onto_window(menu_layer, window);
-
-      #ifdef PBL_COLOR
-      menu_layer_colorize(menu_layer);
-      #endif
-
-      layer_add_child(window_layer, menu_layer_get_layer(menu_layer));
+      if (browser->menu_subtitlecat == NULL)
+      {
+        browser->menu_subtitlecat = strdup(allsubtitles);
+      }
+      else
+      {
+        char *subtitlecat = calloc(strlen(browser->menu_subtitlecat) + strlen(allsubtitles) + 1, sizeof(char));
+        strcat(subtitlecat, browser->menu_subtitlecat);
+        strcat(subtitlecat, allsubtitles);
+        free(browser->menu_subtitlecat);
+        browser->menu_subtitlecat = subtitlecat;
+      }
     }
-    menu_layer_reload_data(browser->menu_layer);
 
-    layer_remove_from_parent(text_layer_get_layer(get_text_layer_loading(NULL)));
+    if (allselectors)
+    {
+      if (browser->menu_selectorcat == NULL)
+      {
+        browser->menu_selectorcat = strdup(allselectors);
+      }
+      else
+      {
+        char *selectorcat = calloc(strlen(browser->menu_selectorcat) + strlen(allselectors) + 1, sizeof(char));
+        strcat(selectorcat, browser->menu_selectorcat);
+        strcat(selectorcat, allselectors);
+        free(browser->menu_selectorcat);
+        browser->menu_selectorcat = selectorcat;
+      }
+    }
+
+    // printf("titlecat (%d): %s", browser->menu_titlecat ? strlen(browser->menu_titlecat) : 0, browser->menu_titlecat ? browser->menu_titlecat : "NULL");
+    // printf("subtitlecat (%d): %s", browser->menu_subtitlecat ? strlen(browser->menu_subtitlecat) : 0, browser->menu_subtitlecat ? browser->menu_subtitlecat : "NULL");
+    // printf("selectorcat (%d): %s", browser->menu_selectorcat ? strlen(browser->menu_selectorcat) : 0, browser->menu_selectorcat ? browser->menu_selectorcat : "NULL");
+  }
+
+  if (done)
+  {
+    // printf("num entries: %d", num_entries);
+    if (num_entries > 0)
+    {
+      browser->menu_num_entries = num_entries;
+      browser->menu_titles = calloc(num_entries, sizeof(char *));
+      browser->menu_selectors = calloc(num_entries, sizeof(char *));
+      browser->menu_subtitles = calloc(num_entries, sizeof(char *));
+      browser->menu_title_heights = calloc(num_entries, sizeof(int));
+      browser->menu_subtitle_heights = calloc(num_entries, sizeof(int));
+
+      Window *window = browser->menu_window;
+      Layer *window_layer = window_get_root_layer(window);
+
+      char **titles = str_split(browser->menu_titlecat, '|');
+      char **subtitles = browser->menu_subtitlecat ? str_split(browser->menu_subtitlecat, '|') : NULL;
+      char **selectors = str_split(browser->menu_selectorcat, '|');
+      for (int i=0; i<num_entries; i++)
+      {
+        char *title = titles[i];
+        browser->menu_titles[i] = strdup(title);
+        browser->menu_title_heights[i] = get_text_height(title, window_layer, FONT_KEY_GOTHIC_24_BOLD);
+
+        char *selector = selectors[i];
+        browser->menu_selectors[i] = strdup(selector);
+
+        browser->menu_subtitle_heights[i] = 0;
+        if (subtitles)
+        {
+          char *subtitle = subtitles[i];
+          browser->menu_subtitles[i] = strdup(subtitle);
+          browser->menu_subtitle_heights[i] = get_text_height(subtitle, window_layer, FONT_KEY_GOTHIC_24);
+        }
+      }
+
+      free(browser->menu_titlecat);
+      if (browser->menu_subtitlecat)
+      {
+        free(browser->menu_subtitlecat);
+      }
+      free(browser->menu_selectorcat);
+
+      if (!browser->menu_layer)
+      {
+        GRect bounds = layer_get_frame(window_layer);
+
+        MenuLayer *menu_layer = menu_layer_create(bounds);
+        browser->menu_layer = menu_layer;
+
+        menu_layer_set_callbacks(menu_layer, NULL, (MenuLayerCallbacks){
+          .get_num_sections = menu_get_num_sections_callback,
+          .get_num_rows = menu_get_num_rows_callback,
+          .get_header_height = menu_get_header_height_callback,
+          .get_cell_height = menu_get_cell_height_callback,
+          .draw_header = menu_draw_header_callback,
+          .draw_row = menu_draw_row_callback,
+          .select_click = menu_select_callback,
+          .select_long_click = menu_select_long_callback,
+          .selection_changed = menu_selection_changed_callback
+        });
+
+        menu_layer_set_click_config_onto_window(menu_layer, window);
+
+        #ifdef PBL_COLOR
+        menu_layer_colorize(menu_layer);
+        #endif
+
+        layer_add_child(window_layer, menu_layer_get_layer(menu_layer));
+      }
+      menu_layer_reload_data(browser->menu_layer);
+
+      layer_remove_from_parent(text_layer_get_layer(get_text_layer_loading(NULL)));
+    }
   }
 }
-
-// static void inbox_received_callback(DictionaryIterator *iterator, void *context)
-// {
-//   // APP_LOG(APP_LOG_LEVEL_ERROR, "Inbox Received");
-//
-//   MenuBrowser *browser = s_menu_browsers[s_browser_index];
-//   browser->loading_state = LOADING_STARTED;
-//
-//   bool done = false;
-//   int num_entries = -1;
-//   int item_index = -1;
-//   char *title = NULL;
-//   char *subtitle = NULL;
-//   char *selector = NULL;
-//   char *msg_type = NULL;
-//
-//   Tuple *t = dict_read_first(iterator);
-//   while (t != NULL)
-//   {
-//     switch(t->key)
-//     {
-//       case KEY_NUM_ENTRIES:
-//       {
-//         num_entries = (int)t->value->int32;
-//         break;
-//       }
-//       case KEY_ITEM_INDEX:
-//       {
-//         item_index = (int)t->value->int32;
-//         break;
-//       }
-//       case KEY_TITLES:
-//       {
-//         title = t->value->cstring;
-//         break;
-//       }
-//       case KEY_SELECTORS:
-//       {
-//         selector = t->value->cstring;
-//         printf("selector: %s", selector);
-//         printf("selector size: %d", strlen(selector));
-//         break;
-//       }
-//       case KEY_SUBTITLES:
-//       {
-//         subtitle = t->value->cstring;
-//         break;
-//       }
-//       case KEY_MSG_TYPE:
-//       {
-//         msg_type = t->value->cstring;
-//         break;
-//       }
-//       case KEY_IS_FAVORITE:
-//       {
-//         browser->isfavorite = (int)t->value->int32 == 1;
-//         printf("setting is favorite: %s", browser->isfavorite ? "yes!" : "no!");
-//         break;
-//       }
-//       case KEY_IS_MORNING_COMMUTE:
-//       {
-//         browser->ismorningcommute = (int)t->value->int32 == 1;
-//         printf("setting is morning commute: %s", browser->ismorningcommute ? "yes!" : "no!");
-//         break;
-//       }
-//       case KEY_IS_EVENING_COMMUTE:
-//       {
-//         browser->iseveningcommute = (int)t->value->int32 == 1;
-//         printf("setting is evening commute: %s", browser->iseveningcommute ? "yes!" : "no!");
-//         break;
-//       }
-//     }
-//
-//     if (strcmp("done", t->value->cstring) == 0)
-//     {
-//       APP_LOG(APP_LOG_LEVEL_ERROR, "Done finding messages!");
-//       done = true;
-//       browser->loading_state = LOADING_DONE;
-//     }
-//
-//     t = dict_read_next(iterator);
-//   }
-//
-//   // we want to make sure we're creating space for entries
-//   // in the proper browser
-//   //
-//   // this is mostly to protect against wonkiness if a user hits
-//   // the back button before the first entry has loaded
-//   if (num_entries > 0 && strcmp(msg_type, browser->msg) == 0)
-//   {
-//     browser->menu_titles = calloc(num_entries, sizeof(char *));
-//     browser->menu_selectors = calloc(num_entries, sizeof(char *));
-//     browser->menu_subtitles = calloc(num_entries, sizeof(char *));
-//
-//     browser->menu_title_heights = calloc(num_entries, sizeof(int));
-//     browser->menu_subtitle_heights = calloc(num_entries, sizeof(int));
-//   }
-//
-//   Window *window = browser->menu_window;
-//   Layer *window_layer = window_get_root_layer(window);
-//
-//   // if (browser->menu_num_entries > 0)
-//   if (done)
-//   {
-//     if (!browser->menu_layer)
-//     {
-//       GRect bounds = layer_get_frame(window_layer);
-//
-//       MenuLayer *menu_layer = menu_layer_create(bounds);
-//       s_menu_browsers[s_browser_index]->menu_layer = menu_layer;
-//
-//       menu_layer_set_callbacks(menu_layer, NULL, (MenuLayerCallbacks){
-//         .get_num_sections = menu_get_num_sections_callback,
-//         .get_num_rows = menu_get_num_rows_callback,
-//         .get_header_height = menu_get_header_height_callback,
-//         .get_cell_height = menu_get_cell_height_callback,
-//         .draw_header = menu_draw_header_callback,
-//         .draw_row = menu_draw_row_callback,
-//         .select_click = menu_select_callback,
-//         .select_long_click = menu_select_long_callback,
-//         .selection_changed = menu_selection_changed_callback
-//       });
-//
-//       menu_layer_set_click_config_onto_window(menu_layer, window);
-//
-//       #ifdef PBL_COLOR
-//         menu_layer_colorize(menu_layer);
-//       #endif
-//
-//       layer_add_child(window_layer, menu_layer_get_layer(menu_layer));
-//     }
-//     menu_layer_reload_data(browser->menu_layer);
-//
-//     layer_remove_from_parent(text_layer_get_layer(get_text_layer_loading(NULL)));
-//   }
-//
-//   if (done)
-//   {
-//     printf("Done loading messages!");
-//     if (browser->menu_num_entries == 0)
-//     {
-//       setup_text_layer_noresults(window);
-//       layer_remove_child_layers(window_layer);
-//       layer_add_child(window_layer, text_layer_get_layer(s_text_layer_noresults));
-//     }
-//   }
-//   else // not done - keep going
-//   {
-//     MenuBrowser *onscreen_browser = browser;
-//
-//     // if there's an errant message from the previous screen,
-//     // we need to catch it and place it in the CORRECT browser
-//     if (strcmp(msg_type, browser->msg) != 0)
-//     {
-//       printf("LOADING was interrupted w/ msg_type = %s, browser msg = %s",
-//              msg_type, browser->msg ? browser->msg : "null");
-//       browser = NULL;
-//       for (int msgIdx=0; msgIdx<s_browser_index; msgIdx++)
-//       {
-//         MenuBrowser *tmp_browser = s_menu_browsers[msgIdx];
-//         if (strcmp(msg_type, tmp_browser->msg) == 0)
-//         {
-//           printf("FOUND replacement at index = %d", msgIdx);
-//           browser = tmp_browser;
-//           break;
-//         }
-//       }
-//     }
-//
-//     if (item_index != -1 && browser != NULL)
-//     {
-//       browser->menu_titles[item_index] = strdup(title);
-//       browser->menu_selectors[item_index] = strdup(selector);
-//
-//       browser->menu_title_heights[item_index] = get_text_height(title, window_layer, FONT_KEY_GOTHIC_24_BOLD);
-//       browser->menu_subtitle_heights[item_index] = 0;
-//
-//       if (subtitle != NULL)
-//       {
-//         browser->menu_subtitles[item_index] = strdup(subtitle);
-//         browser->menu_subtitle_heights[item_index] = get_text_height(subtitle, window_layer, FONT_KEY_GOTHIC_24);
-//       }
-//
-//       if (item_index+1 > browser->menu_num_entries)
-//       {
-//         browser->menu_num_entries = item_index+1;
-//       }
-//       if (item_index == 0)
-//       {
-//         s_horiz_scroll_timer_timestamp = get_timestamp();
-//
-//         if (s_browser_index == 0)
-//         {
-//           s_horiz_scroll_timer_active = true;
-//           s_horiz_scroll_timer = app_timer_register(HORIZ_SCROLL_WAIT_TIME, selected_index_monitor, NULL); // FIXME
-//         }
-//
-//         // printf("calling initiate_horiz_scroll_timer");
-//         // initiate_horiz_scroll_timer("inbox_received_callback");
-//       }
-//
-//       printf("idx: %d, title: %s, subt: %s, sel: %s",
-//         item_index,
-//         browser->menu_titles[item_index] ? browser->menu_titles[item_index] : "nil",
-//         browser->menu_subtitles[item_index] ? browser->menu_subtitles[item_index] : "nil",
-//         browser->menu_selectors[item_index] ? browser->menu_selectors[item_index] : "nil");
-//     }
-//   }
-// }
 
 static void inbox_dropped_callback(AppMessageResult reason, void *context)
 {
@@ -906,6 +766,11 @@ static void initialize_browser(MenuBrowser *browser)
   browser->menu_titles = NULL;
   browser->menu_subtitles = NULL;
   browser->menu_selectors = NULL;
+
+  browser->menu_titlecat = NULL;
+  browser->menu_subtitlecat = NULL;
+  browser->menu_selectorcat = NULL;
+
   browser->menu_num_entries = 0;
 
   browser->loading_state = LOADING_NOT_STARTED;

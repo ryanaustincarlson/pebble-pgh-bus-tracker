@@ -124,30 +124,6 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   }
 }
 
-//
-// app messages
-//
-
-static void inbox_received_callback(DictionaryIterator *iterator, void *context)
-{
-  APP_LOG(APP_LOG_LEVEL_ERROR, "Inbox Msg Received");
-}
-
-static void inbox_dropped_callback(AppMessageResult reason, void *context)
-{
-  APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
-}
-
-static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context)
-{
-  APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed!");
-}
-
-static void outbox_sent_callback(DictionaryIterator *iterator, void *context)
-{
-  APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
-}
-
 static void main_window_load(Window *window)
 {
   // Now we prepare to initialize the menu layer
@@ -199,12 +175,6 @@ static void main_window_unload(Window *window)
   }
 }
 
-void send_app_message_size_helper(void *context)
-{
-  printf("sending app msg size");
-  send_app_message_size_message();
-}
-
 static void init()
 {
   // Create main Window element and assign to pointer
@@ -221,13 +191,6 @@ static void init()
 
   // Open AppMessage
   app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
-
-  app_message_register_inbox_received(inbox_received_callback);
-  app_message_register_inbox_dropped(inbox_dropped_callback);
-  app_message_register_outbox_failed(outbox_failed_callback);
-  app_message_register_outbox_sent(outbox_sent_callback);
-
-  app_timer_register(1000, send_app_message_size_helper, NULL);
 }
 
 static void deinit()

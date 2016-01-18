@@ -3,7 +3,7 @@ var getDirections = {
   savedData : null,
   sendNextDirection : function()
   {
-    
+
   },
   get : function(route)
   {
@@ -17,16 +17,9 @@ var getDirections = {
       return direction.dir;
     });
   },
-  handleRequest : function(should_init, route)
+  handleRequest : function(route)
   {
-    if (should_init)
-    {
-      getDirections.savedData = null;
-      getDirections.get(route);
-    }
-    else
-    {
-      Dispatcher.sendNextItem(getDirections, 'getdirections');
-    }
+    getDirections.savedData = null;
+    getDirections.get(route);
   }
 };

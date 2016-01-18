@@ -27,10 +27,6 @@ var getCommute = {
     };
     return innerSort;
   },
-  sendNextPrediction : function()
-  {
-    Dispatcher.sendNextItem(getCommute, 'getcommute');
-  },
   get : function(entries)
   {
     var routes = [];
@@ -75,40 +71,33 @@ var getCommute = {
       return title;
     }, function(prediction) {
       return [prediction.rt, prediction.rtdir, prediction.stpid, prediction.stpnm].join('_');
-      // return 'foo'; // dunno what to do here...
     });
   },
-  handleRequest : function(should_init, route, direction, stopid, stopname)
+  handleRequest : function()
   {
-    if (should_init)
+    getCommute.savedData = null;
+
+    var currentHours = new Date().getHours();
+    var isMorning = currentHours <= 12;
+    // isMorning = true;
+
+    var persistentDataManager = isMorning ? PersistentMorningCommuteManager : PersistentEveningCommuteManager;
+    if (persistentDataManager.savedData == null)
     {
-      getCommute.savedData = null;
-
-      var currentHours = new Date().getHours();
-      var isMorning = currentHours <= 12;
-
-      var persistentDataManager = isMorning ? PersistentMorningCommuteManager : PersistentEveningCommuteManager;
-      if (persistentDataManager.savedData == null)
-      {
-        persistentDataManager.loadCommute();
-      }
-      var persistentData = persistentDataManager.savedData;
-
-      var sep = PersistentDataManagerUtils.separator;
-      var entries = [];
-      for (var i=0; i<persistentData.length; i++)
-      {
-        var commuteEntry = PersistentDataManagerUtils.parseStorageString(persistentData[i]);
-        console.log(JSON.stringify(commuteEntry));
-        entries.push(commuteEntry);
-      }
-
-      getCommute.get(entries);
+      persistentDataManager.loadCommute();
     }
-    else
+    var persistentData = persistentDataManager.savedData;
+
+    var sep = PersistentDataManagerUtils.separator;
+    var entries = [];
+    for (var i=0; i<persistentData.length; i++)
     {
-      Dispatcher.sendNextItem(getCommute, 'getcommute');
+      var commuteEntry = PersistentDataManagerUtils.parseStorageString(persistentData[i]);
+      console.log(JSON.stringify(commuteEntry));
+      entries.push(commuteEntry);
     }
+
+    getCommute.get(entries);
   }
 };
 
