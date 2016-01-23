@@ -12,10 +12,6 @@
  * CONSTANTS / STATIC VARS
  */
 
-#define HORIZ_SCROLL_WAIT_TIME 750 // ms
-#define HORIZ_SCROLL_ITEM_TIME 150 // ms
-#define HORIZ_SCROLL_VISIBLE_CHARS 15
-
 #define MIN_ROW_HEIGHT 44
 #define MAX_ROW_HEIGHT (int)MIN_ROW_HEIGHT * 2.5
 
@@ -666,7 +662,6 @@ static void window_unload(Window *window)
     s_timer_fired = false;
   }
   s_timer = NULL;
-
 
   MenuBrowser *browser = s_menu_browsers[s_browser_index];
   MenuLayer *menu_layer = browser->menu_layer;

@@ -1,8 +1,8 @@
 #include <pebble.h>
 #include "menu_browser.h"
+#include "help_menu.h"
 #include "app_colors.h"
 #include "app_message_utils.h"
-// #include "str_split.h"
 
 #define NUM_MENU_ICONS 2
 
@@ -22,7 +22,7 @@ static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t secti
   switch (section_index)
   {
     case 0:
-      return 4;
+      return 5;
     default:
       return 0;
   }
@@ -55,6 +55,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
   switch (cell_index->section)
   {
     case 0:
+    {
       // Use the row to specify which item we'll draw
       switch (cell_index->row)
       {
@@ -74,7 +75,6 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
         {
           GBitmap *icon = menu_cell_layer_is_highlighted(cell_layer) ? s_menu_icons_highlighted[1] : s_menu_icons[1];
           menu_cell_basic_draw(ctx, cell_layer, "Routes", NULL, icon);
-          // menu_cell_basic_draw(ctx, cell_layer, "Icon Item", "Select to cycle", s_menu_icons[s_current_icon]);
           break;
         }
         case 3:
@@ -82,10 +82,18 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
           menu_cell_basic_draw(ctx, cell_layer, "Location", NULL, NULL);
           break;
         }
+        case 4:
+        {
+          menu_cell_basic_draw(ctx, cell_layer, "Help", NULL, NULL);
+          break;
+        }
       }
       break;
+    }
     default:
+    {
       break;
+    }
   }
 }
 
@@ -119,6 +127,13 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
     case 3:
     {
       push_menu("getnearbystops", NULL, NULL, NULL, NULL, NULL);
+      break;
+    }
+
+    // Help
+    case 4:
+    {
+      push_help_menu();
       break;
     }
   }
