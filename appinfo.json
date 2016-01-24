@@ -28,7 +28,7 @@
             {
               "type": "png",
               "name": "IMAGE_BUS_HIGHLIGHTED",
-              "file": "bus-highlighted-white.png"
+              "file": "bus-highlighted.png"
             },
             {
               "type": "png",
@@ -38,7 +38,37 @@
             {
               "type": "png",
               "name": "IMAGE_STAR_HIGHLIGHTED",
-              "file": "star-highlighted-white.png"
+              "file": "star-highlighted.png"
+            },
+            {
+              "type": "png",
+              "name": "IMAGE_LOCATION",
+              "file": "location.png"
+            },
+            {
+              "type": "png",
+              "name": "IMAGE_LOCATION_HIGHLIGHTED",
+              "file": "location-highlighted.png"
+            },
+            {
+              "type": "png",
+              "name": "IMAGE_CLOCK",
+              "file": "clock.png"
+            },
+            {
+              "type": "png",
+              "name": "IMAGE_CLOCK_HIGHLIGHTED",
+              "file": "clock-highlighted.png"
+            },
+            {
+              "type": "png",
+              "name": "IMAGE_QUESTION",
+              "file": "question.png"
+            },
+            {
+              "type": "png",
+              "name": "IMAGE_QUESTION_HIGHLIGHTED",
+              "file": "question-highlighted.png"
             }
         ]
     },

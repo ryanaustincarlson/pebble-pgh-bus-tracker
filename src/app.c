@@ -4,7 +4,7 @@
 #include "app_colors.h"
 #include "app_message_utils.h"
 
-#define NUM_MENU_ICONS 2
+#define NUM_MENU_ICONS 5
 
 static Window *s_main_window;
 static MenuLayer *s_menu_layer;
@@ -61,30 +61,33 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
       {
         case 0:
         {
-          menu_cell_basic_draw(ctx, cell_layer, "Commute", NULL, NULL);
+          GBitmap *icon = menu_cell_layer_is_highlighted(cell_layer) ? s_menu_icons_highlighted[0] : s_menu_icons[0];
+          menu_cell_basic_draw(ctx, cell_layer, " Commute", NULL, icon);
           break;
         }
         case 1:
         {
           // This is a basic menu item with a title and subtitle
-          GBitmap *icon = menu_cell_layer_is_highlighted(cell_layer) ? s_menu_icons_highlighted[0] : s_menu_icons[0];
-          menu_cell_basic_draw(ctx, cell_layer, "Favorites", NULL, icon);
+          GBitmap *icon = menu_cell_layer_is_highlighted(cell_layer) ? s_menu_icons_highlighted[1] : s_menu_icons[1];
+          menu_cell_basic_draw(ctx, cell_layer, " Favorites", NULL, icon);
           break;
         }
         case 2:
         {
-          GBitmap *icon = menu_cell_layer_is_highlighted(cell_layer) ? s_menu_icons_highlighted[1] : s_menu_icons[1];
-          menu_cell_basic_draw(ctx, cell_layer, "Routes", NULL, icon);
+          GBitmap *icon = menu_cell_layer_is_highlighted(cell_layer) ? s_menu_icons_highlighted[2] : s_menu_icons[2];
+          menu_cell_basic_draw(ctx, cell_layer, " Routes", NULL, icon);
           break;
         }
         case 3:
         {
-          menu_cell_basic_draw(ctx, cell_layer, "Location", NULL, NULL);
+          GBitmap *icon = menu_cell_layer_is_highlighted(cell_layer) ? s_menu_icons_highlighted[3] : s_menu_icons[3];
+          menu_cell_basic_draw(ctx, cell_layer, " Location", NULL, icon);
           break;
         }
         case 4:
         {
-          menu_cell_basic_draw(ctx, cell_layer, "Help", NULL, NULL);
+          GBitmap *icon = menu_cell_layer_is_highlighted(cell_layer) ? s_menu_icons_highlighted[4] : s_menu_icons[4];
+          menu_cell_basic_draw(ctx, cell_layer, " Help", NULL, icon);
           break;
         }
       }
@@ -170,12 +173,17 @@ static void main_window_load(Window *window)
 
   layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
 
-  // s_menu_icons[0] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BUS);
-  s_menu_icons[0] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STAR);
-  s_menu_icons[1] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BUS);
+  s_menu_icons[0] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CLOCK);
+  s_menu_icons[1] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STAR);
+  s_menu_icons[2] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BUS);
+  s_menu_icons[3] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_LOCATION);
+  s_menu_icons[4] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_QUESTION);
 
-  s_menu_icons_highlighted[0] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STAR_HIGHLIGHTED);
-  s_menu_icons_highlighted[1] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BUS_HIGHLIGHTED);
+  s_menu_icons_highlighted[0] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CLOCK_HIGHLIGHTED);
+  s_menu_icons_highlighted[1] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STAR_HIGHLIGHTED);
+  s_menu_icons_highlighted[2] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BUS_HIGHLIGHTED);
+  s_menu_icons_highlighted[3] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_LOCATION_HIGHLIGHTED);
+  s_menu_icons_highlighted[4] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_QUESTION_HIGHLIGHTED);
 }
 
 static void main_window_unload(Window *window)
@@ -187,6 +195,9 @@ static void main_window_unload(Window *window)
   {
     gbitmap_destroy(s_menu_icons[i]);
     gbitmap_destroy(s_menu_icons_highlighted[i]);
+
+    s_menu_icons[i] = NULL;
+    s_menu_icons_highlighted[i] = NULL;
   }
 }
 
