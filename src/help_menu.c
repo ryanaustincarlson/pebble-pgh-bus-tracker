@@ -262,7 +262,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
       "This option uses GPS to locate nearby busses (described in more depth "
       "in Navigation help). I'd just like to note that all of the GPS data is "
       "handled LOCALLY, on the watch and phone, so none of your location information "
-      "is sent to any server. I built this with you privacy in mind!");
+      "is sent to any server. I built this with your privacy in mind!");
       break;
     }
   }
