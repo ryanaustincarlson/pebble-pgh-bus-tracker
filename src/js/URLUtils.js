@@ -14,7 +14,7 @@ var URLUtils = {
     url += params.join('&');
     return url;
   },
-  
+
   sendRequest : function(url, callback) {
     var xhr = new XMLHttpRequest();
     xhr.onload = function () {

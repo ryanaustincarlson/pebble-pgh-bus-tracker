@@ -339,6 +339,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   browser->loading_state = LOADING_STARTED;
 
   bool done = false;
+  bool error = false;
   int num_entries = -1;
   char *alltitles = NULL;
   char *allsubtitles = NULL;
@@ -375,8 +376,22 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         done = true;
         break;
       }
+      case KEY_ERROR:
+      {
+        error = true;
+        break;
+      }
     }
     t = dict_read_next(iterator);
+  }
+  if (error)
+  {
+    printf("found error!");
+    Window *window = browser->menu_window;
+    TextLayer *text_layer_error = get_text_layer_error(window);
+
+    Layer *window_layer = window_get_root_layer(window);
+    layer_add_child(window_layer, text_layer_get_layer(text_layer_error));
   }
 
   if (done)
