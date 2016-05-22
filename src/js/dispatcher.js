@@ -254,7 +254,6 @@ var Dispatcher = {
     URLUtils.sendRequest(url, function(responseText) {
       // FOR TESTING ONLY!
       // responseText = '{"bustime-response": {"prd": [{"tmstmp": "20151126 22:02","typ": "A","stpnm": "Negley Station Stop X","stpid": "8162","vid": "3239","dstp": 27715,"rt": "P1X","rtdd": "P1X","rtdir": "INBOUNDX","des": "DowntownX","prdtm": "20151126 22:24","tablockid": "P1  -165","tatripid": "65856","dly": false,"prdctdn": "25","zone": ""},{"tmstmp": "20151126 22:02","typ": "A","stpnm": "Negley Station Stop C","stpid": "8162","vid": "3239","dstp": 27715,"rt": "P1","rtdd": "P1","rtdir": "INBOUND","des": "Downtown","prdtm": "20151126 22:24","tablockid": "P1  -165","tatripid": "65856","dly": false,"prdctdn": "21","zone": ""}]}}'
-      console.log(responseText);
       if (!!responseText)
       {
         try

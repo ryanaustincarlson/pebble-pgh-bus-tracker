@@ -74,7 +74,7 @@
         ]
     },
     "sdkVersion": "3",
-    "shortName": "PGH Bus Tracker",
+    "shortName": "PGHBT",
     "targetPlatforms": [
         "aplite", "basalt"
     ],

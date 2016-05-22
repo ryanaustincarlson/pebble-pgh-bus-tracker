@@ -306,6 +306,9 @@ static void help_window_load(Window *window)
 
 static void help_window_unload(Window *window)
 {
+  menu_layer_destroy(s_menu_layer);
+  s_menu_layer = NULL;
+
   window_destroy(s_help_window);
   s_help_window = NULL;
 }

@@ -40,6 +40,10 @@ unsigned long get_timestamp()
 
 int get_text_height(char *text, const Layer *layer, const char *font_key)
 {
+  if (!text || !layer)
+  {
+    return 0;
+  }
   GRect bounds = layer_get_frame(layer);
   int cell_width = bounds.size.w - 10;
   GSize size = graphics_text_layout_get_content_size(
@@ -384,9 +388,9 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     }
     t = dict_read_next(iterator);
   }
+
   if (error)
   {
-    printf("found error!");
     Window *window = browser->menu_window;
     TextLayer *text_layer_error = get_text_layer_error(window);
 
@@ -476,9 +480,11 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         char *title = titles[i];
         browser->menu_titles[i] = strdup(title);
         browser->menu_title_heights[i] = get_text_height(title, window_layer, FONT_KEY_GOTHIC_24_BOLD);
+        free(title);
 
         char *selector = selectors[i];
         browser->menu_selectors[i] = strdup(selector);
+        free(selector);
 
         browser->menu_subtitle_heights[i] = 0;
         if (subtitles)
@@ -486,7 +492,14 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
           char *subtitle = subtitles[i];
           browser->menu_subtitles[i] = strdup(subtitle);
           browser->menu_subtitle_heights[i] = get_text_height(subtitle, window_layer, FONT_KEY_GOTHIC_24);
+          free(subtitle);
         }
+      }
+      free(titles);
+      free(selectors);
+      if (subtitles)
+      {
+        free(subtitles);
       }
 
       free(browser->menu_titlecat);
@@ -621,6 +634,17 @@ static void free_browser_lists(MenuBrowser *browser)
   browser->menu_selectors = NULL;
 
   browser->menu_num_entries = 0;
+
+  if (browser->menu_title_heights != NULL)
+  {
+    free(browser->menu_title_heights);
+  }
+  browser->menu_title_heights = NULL;
+  if (browser->menu_subtitle_heights != NULL)
+  {
+    free(browser->menu_subtitle_heights);
+  }
+  browser->menu_subtitle_heights = NULL;
 }
 
 static void window_load(Window *window)
@@ -735,6 +759,7 @@ static void window_unload(Window *window)
     s_menu_browsers = NULL;
 
     destroy_text_layer_loading();
+    destroy_text_layer_error();
     text_layer_destroy(s_text_layer_noresults);
     s_text_layer_noresults = NULL;
 
@@ -754,7 +779,6 @@ void menu_browser_register_app_message_callbacks()
 
 void push_menu(char *msg, char *route, char *direction, char *stopid, char *stopname, char *extra)
 {
-  printf("menu push");
   if (s_menu_browsers == NULL)
   {
     int num_browsers = 4;
