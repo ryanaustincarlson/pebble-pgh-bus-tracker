@@ -17,7 +17,7 @@
         "location"
     ],
     "companyName": "ryan.austin.carlson@gmail.com",
-    "longName": "PGH Bus Tracker",
+    "longName": "Pittsburgh Bus Tracker",
     "projectType": "native",
     "resources": {
         "media": [
@@ -74,7 +74,7 @@
         ]
     },
     "sdkVersion": "3",
-    "shortName": "PGHBT",
+    "shortName": "PGH Bus Tracker",
     "targetPlatforms": [
         "aplite", "basalt"
     ],
